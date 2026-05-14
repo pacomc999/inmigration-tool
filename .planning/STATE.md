@@ -6,9 +6,9 @@ status: unknown
 last_updated: "2026-05-14T14:14:20.250Z"
 progress:
   total_phases: 6
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
+  completed_phases: 2
+  total_plans: 3
+  completed_plans: 3
   percent: 100
 ---
 
@@ -26,15 +26,15 @@ Single source of truth for project memory. Updated at every transition.
 ## Current Position
 
 - **Milestone**: v1
-- **Phase**: 1 - Skeleton, State, Key Handling, Static Constants (ready to plan)
+- **Phase**: 2 - LLM Round-Trip in English (ready to plan)
 - **Plan**: None yet
-- **Status**: Phase 0 complete; ready for `/gsd-plan-phase 1`
-- **Progress**: [■□□□□□] 1 of 6 phases complete
+- **Status**: Phase 1 complete; ready for `/gsd-plan-phase 2`
+- **Progress**: [■■□□□□] 2 of 6 phases complete
 
 ## Performance Metrics
 
-- **Phases complete**: 1 of 6
-- **Requirements satisfied**: 1 of 30 v1 requirements (SPIKE-01)
+- **Phases complete**: 2 of 6
+- **Requirements satisfied**: 4 of 29 v1 requirements (SPIKE-01, KEY-01, KEY-02, KEY-03, TRUST-04). KEY-04 dropped (provider toggle obsoleted by Phase 0 outcome).
 - **First-real-user pilot**: not yet attempted
 - **CORS spike**: PASS (Anthropic direct browser fetch, desktop Chrome, 2026-05-14)
 
@@ -58,8 +58,10 @@ Single source of truth for project memory. Updated at every transition.
 
 ### Open Todos
 
-- Phase 1 planning: amend SPIKE-01 wording (still references Gemini, OpenAI, iOS Safari; superseded by D-01, D-02, D-05), and drop KEY-04 (provider toggle) from REQUIREMENTS.md per Phase 0 outcome
-- Phase 1: pick a current Anthropic model id (do not reuse `claude-3-5-haiku-latest`, retired). Spike used `claude-haiku-4-5`.
+- Phase 2 planning: use current Anthropic model id (Phase 0 spike used `claude-haiku-4-5`; `claude-3-5-haiku-latest` is retired)
+- TRUST-05 onboarding copy still references a "free Gemini API key" in REQUIREMENTS.md; update to Anthropic during Phase 3 onboarding work
+- ASSUMPTION A1 (Phase 3): native-speaker review of Block D panic phrases before CHEAT-04 renders them (inline comment in index.html marks the spot)
+- ASSUMPTION A2 (Phase 5): re-verify 24 Dec 2026 Migrationsamt schedule against zh.ch before the pilot call (inline comment in index.html marks the spot)
 
 ### Active Blockers
 
@@ -77,8 +79,8 @@ None.
 
 ## Session Continuity
 
-- **Last session**: 2026-05-14, Phase 0 executed and PASSED (Anthropic CORS spike on desktop Chrome via GitHub Pages)
-- **Next action**: Run `/gsd-plan-phase 1` to plan Skeleton, State, Key Handling, Static Constants (committing to direct Anthropic fetch per Phase 0 outcome)
+- **Last session**: 2026-05-14, Phase 1 executed (v1 skeleton + CSP + key handling + Migrationsamt constants + REQUIREMENTS/ROADMAP housekeeping)
+- **Next action**: Run `/gsd-plan-phase 2` to plan the LLM Round-Trip in English (intake form, prompt building, JSON schema response, consent, loading state, error handling)
 - **Files of record**: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/ROADMAP.md`, `.planning/research/SUMMARY.md`, `.planning/phases/00-cors-and-provider-spike/00-CONTEXT.md`
 
 ---
