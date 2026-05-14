@@ -148,6 +148,130 @@
   </footer>
 
   <script>
+    /* ----------------------------------------------------------------------
+       Hardcoded Migrationsamt facts (Block A on the cheat sheet).
+       These are the load-bearing contact details for the Migrationsamt
+       Kanton Zürich. The LLM is permanently forbidden from generating any
+       of this content (phone, address, hours, holidays). Phase 1 only
+       declares the constant. Phase 3 will render it inside Block A.
+       ---------------------------------------------------------------------- */
+    // Sources verified 2026-05-14 against https://www.zh.ch/de/sicherheitsdirektion/migrationsamt.html
+    // Re-verify annually and before each pilot launch (researcher Trap 5).
+    const MIGRATIONSAMT = {
+      nameDe: 'Migrationsamt des Kantons Zürich',
+      nameEn: 'Migration Office of Canton Zurich',
+      parentDept: 'Sicherheitsdirektion Kanton Zürich',
+      address: {
+        line1: 'Berninastrasse 45',
+        line2: 'Postfach',
+        postalCode: '8090',
+        city: 'Zürich',
+        country: 'Switzerland',
+      },
+      phone: {
+        international: '+41 43 259 88 00',
+        national: '043 259 88 00',
+      },
+      email: 'info@ma.zh.ch',
+      website: 'https://www.zh.ch/de/sicherheitsdirektion/migrationsamt.html',
+      // Phone service: when a human picks up. Two windows with a lunch gap.
+      phoneHours: {
+        mondayToFriday: [
+          { from: '08:00', to: '11:45' },
+          { from: '13:00', to: '16:30' },
+        ],
+        saturday: null,
+        sunday: null,
+      },
+      // Counter (Schalter) hours, kept for completeness even though v1
+      // is about phone calls.
+      counterHours: {
+        mondayToFriday: [{ from: '08:00', to: '16:30' }],
+      },
+      // ASSUMPTION (researcher A2): 24 Dec 2026 Migrationsamt schedule is
+      // currently treated as normal hours. Canton Zürich practice often
+      // makes this a half-day; confirm with Francisco or via zh.ch before
+      // the Phase 5 pilot. If half-day applies, add
+      //   { date: '2026-12-24', name: 'Tag vor Weihnachten', type: 'reduced', closesAt: '12:00' }
+      // to closures2026.
+      closures2026: [
+        { date: '2026-01-01', name: 'Neujahrstag', type: 'closed' },
+        { date: '2026-01-02', name: 'Berchtoldstag', type: 'closed' },
+        { date: '2026-04-03', name: 'Karfreitag', type: 'closed' },
+        { date: '2026-04-06', name: 'Ostermontag', type: 'closed' },
+        { date: '2026-05-01', name: 'Tag der Arbeit', type: 'closed' },
+        // The reduced-hours day before Auffahrt is published per-year by
+        // the Migrationsamt. This entry needs to be re-derived for 2027
+        // (researcher Section 4 note).
+        { date: '2026-05-13', name: 'Tag vor Auffahrt', type: 'reduced', closesAt: '14:30' },
+        { date: '2026-05-14', name: 'Auffahrt', type: 'closed' },
+        { date: '2026-05-25', name: 'Pfingstmontag', type: 'closed' },
+        { date: '2026-08-01', name: 'Bundesfeier', type: 'closed' },
+        { date: '2026-12-25', name: 'Weihnachtstag', type: 'closed' },
+        { date: '2026-12-26', name: 'Stephanstag', type: 'closed' },
+      ],
+    };
+
+    /* ----------------------------------------------------------------------
+       Block D: panic phrases.
+       Seven canonical phone phrases in formal Standard German with English
+       gloss. Hardcoded because the LLM is forbidden from inventing the
+       phrasebook. Phase 3 renders these inside Block D of the cheat sheet.
+       ---------------------------------------------------------------------- */
+    // ASSUMPTION (researcher A1): exact German phrasing of these panic
+    // phrases is conventional usage. Confirm with a native speaker before
+    // Phase 3 renders them; updating these strings is a one-line change
+    // per phrase.
+    const BLOCK_D = [
+      { de: 'Können Sie das bitte wiederholen?', en: 'Could you please repeat that?' },
+      { de: 'Können Sie bitte langsamer sprechen?', en: 'Could you please speak more slowly?' },
+      { de: 'Können Sie mir das bitte per E-Mail schicken?', en: 'Could you please send me that by email?' },
+      { de: 'Ich verstehe nicht.', en: 'I do not understand.' },
+      { de: 'Ich habe verstanden.', en: 'I understood.' },
+      { de: 'Vielen Dank.', en: 'Thank you very much.' },
+      { de: 'Auf Wiederhören.', en: 'Goodbye (phone-specific).' },
+    ];
+
+    /* ----------------------------------------------------------------------
+       Hochdeutsch request line.
+       Standalone constant for the always-on "please speak Standard German"
+       request. Lives in Block B on the cheat sheet but kept in the
+       constants bundle here because the German wording is hardcoded.
+       Phase 3 renders this at the top of Block B.
+       ---------------------------------------------------------------------- */
+    const HOCHDEUTSCH_REQUEST = {
+      de: 'Können wir bitte auf Hochdeutsch sprechen? Mein Schweizerdeutsch ist nicht so gut.',
+      en: 'Could we please speak Standard German? My Swiss German is not very good.',
+    };
+
+    /* ----------------------------------------------------------------------
+       Block H: footer disclaimer and escalation links.
+       Three external organisations that can help a migrant beyond what
+       this preparation tool can offer. URLs verified 2026-05-14. Phase 3
+       renders these as Block H at the bottom of every cheat sheet.
+       ---------------------------------------------------------------------- */
+    const BLOCK_H_FOOTER = {
+      disclaimer: 'This is a preparation aid, not legal advice. Do not impersonate the user. Do not contact authorities on the user behalf.',
+      escalations: [
+        {
+          name: 'Welcome Desk (Stadt Zürich)',
+          url: 'https://www.stadt-zuerich.ch/de/lebenslagen/neu-in-zuerich/zuzug-ausland/welcome-desk.html',
+          description: 'Free information for newcomers, multilingual',
+        },
+        {
+          name: 'MIRSAH (SAH Zürich)',
+          url: 'https://www.sah-zh.ch/angebot/mirsah/',
+          phone: '+41 44 291 00 15',
+          description: 'Legal counselling for migration and integration law',
+        },
+        {
+          name: 'Solinetz Zürich',
+          url: 'https://solinetz-zh.ch/',
+          description: 'Network supporting migrants and refugees',
+        },
+      ],
+    };
+
     /* State: appState is the single source of truth for what the UI shows. */
     const appState = {
       screen: 'key-entry',  // 'key-entry' | 'ready'
