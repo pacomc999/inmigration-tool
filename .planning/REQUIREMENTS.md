@@ -88,4 +88,40 @@ Scoped requirements for the v1.0 milestone of the Migrationsamt Zürich Call Hel
 
 ## Traceability
 
-(Filled by roadmap creation, maps each REQ-ID to a Phase.)
+Every active v1 requirement maps to exactly one phase. 30 of 30 mapped, 0 orphans.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| SPIKE-01 | Phase 0 | Pending |
+| KEY-01 | Phase 1 | Pending |
+| KEY-02 | Phase 1 | Pending |
+| KEY-03 | Phase 1 | Pending |
+| KEY-04 | Phase 1 | Pending |
+| TRUST-04 | Phase 1 | Pending (lifetime guardrail, enforced from Phase 1 forward) |
+| INTAKE-02 | Phase 2 | Pending |
+| INTAKE-03 | Phase 2 | Pending |
+| INTAKE-04 | Phase 2 | Pending |
+| INTAKE-05 | Phase 2 | Pending |
+| LLM-01 | Phase 2 | Pending |
+| LLM-02 | Phase 2 | Pending |
+| LLM-03 | Phase 2 | Pending |
+| LLM-04 | Phase 2 | Pending (EN error copy in Phase 2; ES/PT in Phase 4 via LANG-01) |
+| TRUST-02 | Phase 2 | Pending |
+| CHEAT-01 | Phase 3 | Pending (constants file lives in Phase 1; rendering in Phase 3) |
+| CHEAT-02 | Phase 3 | Pending |
+| CHEAT-03 | Phase 3 | Pending |
+| CHEAT-04 | Phase 3 | Pending (constants file lives in Phase 1; rendering in Phase 3) |
+| CHEAT-05 | Phase 3 | Pending |
+| CHEAT-06 | Phase 3 | Pending |
+| CHEAT-07 | Phase 3 | Pending (constants file lives in Phase 1; rendering in Phase 3) |
+| CHEAT-08 | Phase 3 | Pending (constants file lives in Phase 1; rendering in Phase 3) |
+| TRUST-01 | Phase 3 | Pending |
+| TRUST-03 | Phase 3 | Pending |
+| TRUST-05 | Phase 3 | Pending |
+| PRINT-01 | Phase 3 | Pending |
+| PRINT-02 | Phase 3 | Pending |
+| PRINT-03 | Phase 3 | Pending |
+| INTAKE-01 | Phase 4 | Pending (selector meaningless without ES + PT content live) |
+| LANG-01 | Phase 4 | Pending |
+| LANG-02 | Phase 4 | Pending |
+| PILOT-01 | Phase 5 | Pending |
