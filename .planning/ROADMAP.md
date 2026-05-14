@@ -73,7 +73,9 @@ Note: the Phase 0 Goal and Success Criteria above predate the discussion capture
   3. After submission, user sees a clear loading state with reassurance messaging during the 10 to 20 second wait
   4. On success, the parsed JSON returned by the LLM matches the locked schema for Blocks B, C, E, and F, and is viewable (even as raw structured output) on a result screen
   5. On 401, 429, 500, or JSON parse failure, the user sees a friendly English error message with a "Try again" and "Back to intake" path; the system prompt forbids generating contact details, permit-eligibility advice, and strategic legal advice
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 02-01-PLAN.md - Intake form (INTAKE-02..05), consent block (TRUST-02), state-machine extension and inline key header strip
+- [ ] 02-02-PLAN.md - LLM round-trip core (LLM-01..04) with output_config.format JSON schema, generating/result/error screens, ?mock=1 and ?mock=broken fixtures, README, human-verify checkpoint
 **UI hint**: yes
 
 ### Phase 3: Cheat Sheet Rendering, Print, Mobile, Onboarding, Privacy
@@ -86,7 +88,9 @@ Note: the Phase 0 Goal and Success Criteria above predate the discussion capture
   3. Hitting Ctrl+P or the in-app Print button produces a clean A4 layout, one to two pages, with form controls and buttons hidden, and no section is split across a page break
   4. The cheat sheet renders as a readable single-column layout on a real iPhone Safari window (tested on device, not just devtools emulation)
   5. A first-time visitor without a key lands on an onboarding screen explaining the BYO-key model, with a link to obtain a free Gemini key, and can read a dedicated privacy page explaining the no-backend, no-logging, BYO-key posture in plain English
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 02-01-PLAN.md - Intake form (INTAKE-02..05), consent block (TRUST-02), state-machine extension and inline key header strip
+- [ ] 02-02-PLAN.md - LLM round-trip core (LLM-01..04) with output_config.format JSON schema, generating/result/error screens, ?mock=1 and ?mock=broken fixtures, README, human-verify checkpoint
 **UI hint**: yes
 
 ### Phase 4: Multilingual Intake and Glosses (ES + PT)
