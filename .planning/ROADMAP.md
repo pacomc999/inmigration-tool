@@ -43,7 +43,10 @@ Hardcoded blocks: A (contact + hours), D, G, H. LLM-generated blocks: B (custom 
   3. Both fetches are repeated successfully on iOS Safari from the same deployed URL
   4. If any of the above fails, Plan B (Cloudflare Workers proxy) is committed with a working spike before Phase 1 starts
   5. Outcome documented in PROJECT.md Key Decisions and in a Phase 0 note (CORS-green or Plan-B chosen)
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 00-01-PLAN.md - Anthropic CORS spike on GitHub Pages (build spike/index.html, deploy via Pages, verify desktop Chrome fetch, record outcome in PROJECT.md Key Decisions)
+
+Note: the Phase 0 Goal and Success Criteria above predate the discussion captured in `.planning/phases/00-cors-and-provider-spike/00-CONTEXT.md`. The CONTEXT decisions (D-01, D-02, D-05) narrow Phase 0 to Anthropic-only on desktop Chrome and supersede the Gemini/OpenAI/iOS Safari language above. The pre-existing wording is left intact here for traceability and will be amended formally during Phase 1 planning along with KEY-04.
 
 ### Phase 1: Skeleton, State, Key Handling, Static Constants
 **Goal**: Lay the structural backbone the rest of the app hangs from, with the API key flow working end-to-end, the lifetime microphone guardrail in place, and every fact the LLM is forbidden to invent already hardcoded.
@@ -110,7 +113,7 @@ Hardcoded blocks: A (contact + hours), D, G, H. LLM-generated blocks: B (custom 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. CORS and Provider Spike | 0/0 | Not started | - |
+| 0. CORS and Provider Spike | 0/1 | Planned | - |
 | 1. Skeleton, State, Key Handling, Static Constants | 0/0 | Not started | - |
 | 2. LLM Round-Trip in English | 0/0 | Not started | - |
 | 3. Cheat Sheet Rendering, Print, Mobile, Onboarding, Privacy | 0/0 | Not started | - |
