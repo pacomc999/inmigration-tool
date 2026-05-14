@@ -63,6 +63,23 @@ Eliminate the language barrier moment when a non-German speaker has to call the 
 | Out: AI dialing the office | Swiss recording law makes consent practically impossible, Migrationsamt will not engage with AI representatives, and the engineering is months of work | Pending |
 | Out: live AI interpreter for v1 | Bigger engineering leap (Realtime API, backend) that would push past the one-month timeline. Reasonable stretch for v2 | Pending |
 
+### 2026-05-14: Phase 0 CORS spike outcome (Anthropic, desktop Chrome)
+
+**Result: pass.**
+
+What was tested: a single-file static HTML page (`spike/index.html`), deployed to GitHub Pages from the `master` branch root and served at `/spike/`, called the Anthropic Messages API directly from the browser. The request used the `anthropic-dangerous-direct-browser-access: true` header along with `x-api-key` and `anthropic-version: 2023-06-01`, and posted a Migrationsamt-shaped translation prompt asking for a Standard German rendering of "I would like to renew my B residence permit. My case reference number is ZH-12345." Tested in desktop Chrome only.
+
+The response came back with HTTP 200 and the verbatim German completion: "Ich möchte meine B-Aufenthaltserlaubnis erneuern. Meine Geschäftsreferenznummer ist ZH-12345." No CORS preflight failure was observed, and the dangerous-direct-browser-access header was accepted by Anthropic.
+
+Model swap during execution: the plan suggested `claude-3-5-haiku-latest`, but that model id returned a 404 at runtime (the model has been retired). The executor swapped to `claude-haiku-4-5` (commit `1418075`) and the retest passed. Phase 1 planning should pick a current model id and avoid `claude-3-5-haiku-latest`.
+
+Architecture commit for Phase 1:
+
+- v1 builds against direct browser `fetch` to Anthropic, per D-01. No backend, no proxy.
+- KEY-04 (provider toggle between Gemini and OpenAI) is obsolete and will be removed from REQUIREMENTS.md when Phase 1 is planned.
+
+Scope note: this result is desktop-Chrome-only and Anthropic-only (per D-02, D-05). It does not say anything about Gemini, OpenAI, or iOS Safari, all of which remain out of v1 scope.
+
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
