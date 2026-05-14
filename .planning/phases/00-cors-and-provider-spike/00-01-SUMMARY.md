@@ -43,9 +43,12 @@ User message content sent to Anthropic:
 
 ## Exact Response Received
 
-> Ich möchte meine B-Aufenthaltserlaubnis erneuern. Meine Geschäftsreferenznummer ist ZH-12345.
+The test was run twice:
 
-HTTP 200. No CORS preflight failure, no browser-origin rejection. Status line read "success".
+1. **Local `file://` run** (before the GitHub remote existed): HTTP 200, response "Ich möchte meine B-Aufenthaltserlaubnis erneuern. Meine Geschäftsreferenznummer ist ZH-12345."
+2. **Production-origin run** at `https://pacomc999.github.io/inmigration-tool/spike/` (after creating the repo and enabling Pages): HTTP 200, non-empty German completion confirmed by Francisco.
+
+The production-origin run is the binding one for D-02 / D-05. No CORS preflight failure, no browser-origin rejection in either run. Status line read "success" in both cases.
 
 ## Model Used at Execution Time
 
@@ -55,7 +58,7 @@ The plan suggested `claude-3-5-haiku-latest`, but at execution time that model i
 
 ## GitHub Pages Status
 
-GitHub Pages was NOT enabled at the start of this phase. Francisco enabled it manually via the repo Settings → Pages page during Task 2, with source set to the `master` branch and folder set to root. The spike was served at `/spike/` from that point on, and the production CORS test was run against the Pages URL (not against a local file or local server), so the result is binding for the v1 origin.
+The repo did not exist on GitHub at the start of this phase. During Task 2 we created the public repo `pacomc999/inmigration-tool` and enabled Pages on `master` root via the `gh` CLI (installed via `winget install GitHub.cli`, then `gh auth login`). The Pages build deployment workflow completed successfully (run id `25865696552`). The spike is served at `https://pacomc999.github.io/inmigration-tool/spike/`, and the binding production CORS test was run against that URL in desktop Chrome.
 
 ## Architecture Commit for Phase 1
 
@@ -74,8 +77,9 @@ The result is desktop-Chrome-only and Anthropic-only (per D-02, D-05). It does n
 |------|--------|-------------|
 | 1 | `98f2bac` | Add Anthropic CORS spike page |
 | 1 (fix) | `1418075` | Update spike model to claude-haiku-4-5 (after `claude-3-5-haiku-latest` 404'd) |
-| 2 | (human verification, no commit) | Francisco enabled GitHub Pages and ran the live CORS test in desktop Chrome |
-| 3 | `a47d48f` | Record Phase 0 CORS spike outcome in PROJECT.md |
+| 2 | (human verification, no commit) | Francisco ran the live CORS test in desktop Chrome (first from `file://`, then from the deployed Pages URL after the repo was created) |
+| 3 | `a47d48f` | Record Phase 0 CORS spike outcome in PROJECT.md (initial entry) |
+| 3 (refinement) | (next commit) | Updated PROJECT.md outcome and SUMMARY to reflect production-origin retest after repo + Pages set up |
 
 ## Deviations from Plan
 
