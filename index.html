@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Migrationsamt Zürich Call Helper</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!--
+    Note: <meta> CSP cannot enforce frame-ancestors, report-uri, or sandbox.
+    Those would require HTTP headers, which GitHub Pages does not let us set.
+    Do not add those directives here; they are silently ignored.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    connect-src https://api.anthropic.com;
+    script-src 'self' 'unsafe-inline';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data:;
+    font-src 'self';
+    form-action 'none';
+    base-uri 'self';
+    object-src 'none';
+  ">
+
+  <style>
+    /* Beginner-friendly system font stack. Centered, readable column. */
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 720px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      color: #222;
+      line-height: 1.5;
+    }
+
+    /* Page header: H1 and the one-line subtitle. */
+    header h1 {
+      font-size: 1.5rem;
+      margin-bottom: 0.25rem;
+    }
+    header p.subtitle {
+      color: #555;
+      margin-top: 0;
+    }
+
+    /* Section headings inside main. */
+    main h2 {
+      font-size: 1.15rem;
+      margin-top: 1.5rem;
+    }
+
+    /* Helper paragraphs and small print under inputs. */
+    p.helper {
+      color: #555;
+      font-size: 0.95rem;
+    }
+    p.under-input {
+      color: #666;
+      font-size: 0.85rem;
+      margin-top: 0.25rem;
+    }
+
+    /* Form fields. */
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    input[type="password"] {
+      width: 100%;
+      padding: 0.5rem;
+      font-size: 1rem;
+      box-sizing: border-box;
+      margin-top: 0.25rem;
+    }
+
+    /* Buttons: simple, no fancy theming. */
+    button {
+      margin-top: 1rem;
+      margin-right: 0.5rem;
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    /* Inline error message under the input. */
+    p.error {
+      color: #b00020;
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+
+    /* Masked-key display chip. */
+    span#maskedKey {
+      font-family: monospace;
+      background: #f4f4f4;
+      padding: 0.1rem 0.4rem;
+      border-radius: 3px;
+    }
+
+    /* Footer disclaimer pinned at the bottom of the column. */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid #ddd;
+      color: #666;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Migrationsamt Zürich Call Helper</h1>
+    <p class="subtitle">A preparation tool for English speakers who need to call the Migrationsamt of canton Zürich.</p>
+  </header>
+
+  <main>
+
+    <!-- Screen 1: key entry. Visible when no key is stored. -->
+    <section id="keyEntry">
+      <h2>Bring your own Anthropic API key</h2>
+      <p class="helper">
+        This tool runs entirely in your browser. To generate your cheat sheet it needs to call Anthropic's Claude API on your behalf. You provide the key, the key stays in your browser, and nothing else is sent anywhere. No backend, no logging, no accounts.
+      </p>
+
+      <label for="apiKeyInput">Your Anthropic API key</label>
+      <input id="apiKeyInput" type="password" placeholder="sk-ant-..." autocomplete="off">
+      <p class="under-input">Stored only in your browser's local storage. Click "Clear key" any time to remove it.</p>
+
+      <button id="saveKeyBtn" type="button">Save key</button>
+      <p id="keyEntryError" class="error" hidden></p>
+    </section>
+
+    <!-- Screen 2: ready. Visible once a key is saved. -->
+    <section id="ready" hidden>
+      <h2>Key saved</h2>
+      <p class="helper">Your key is stored in this browser only. You are ready to use the tool.</p>
+      <p>Stored key: <span id="maskedKey"></span></p>
+      <button id="replaceKeyBtn" type="button">Replace key</button>
+      <button id="clearKeyBtn" type="button">Clear key</button>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>This is a preparation aid, not legal advice. The tool does not contact authorities. You make the call.</p>
+  </footer>
+
+  <script>
+    /* State: appState is the single source of truth for what the UI shows. */
+    const appState = {
+      screen: 'key-entry',  // 'key-entry' | 'ready'
+      apiKey: null,         // raw key, in memory only, never written via innerHTML
+    };
+
+    /* localStorage helpers, all wrapped in try/catch so private-browsing or
+       quota errors do not crash the app. Namespaced key prevents collisions
+       with other projects on the same GitHub Pages origin. */
+    const STORAGE_KEY = 'migrationsamt.anthropicKey';
+
+    function loadStoredKey() {
+      try {
+        const value = localStorage.getItem(STORAGE_KEY);
+        if (value && value.trim()) return value;
+        return null;
+      } catch (err) {
+        return null;
+      }
+    }
+
+    function saveStoredKey(key) {
+      try {
+        localStorage.setItem(STORAGE_KEY, key);
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: 'storage-blocked' };
+      }
+    }
+
+    function clearStoredKey() {
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: 'storage-blocked' };
+      }
+    }
+
+    /* maskKey: produces the display string for the saved key. Never echoes
+       the full key. First 7 chars cover the sk-ant- prefix, then ellipsis,
+       then the last 4 chars so the user can recognise their own key. */
+    function maskKey(key) {
+      if (!key || key.length < 12) return '(hidden)';
+      return key.slice(0, 7) + '...' + key.slice(-4);
+    }
+
+    /* setState merges a partial update into appState then re-renders. */
+    function setState(partial) {
+      Object.assign(appState, partial);
+      render();
+    }
+
+    /* render reads appState and toggles section visibility. Idempotent.
+       The masked key is written via textContent only, never innerHTML. */
+    function render() {
+      const keyEntryEl = document.getElementById('keyEntry');
+      const readyEl = document.getElementById('ready');
+      const errorEl = document.getElementById('keyEntryError');
+
+      if (appState.screen === 'key-entry') {
+        keyEntryEl.hidden = false;
+        readyEl.hidden = true;
+        // Clear any stale error when returning to the key-entry screen.
+        errorEl.hidden = true;
+        errorEl.textContent = '';
+      } else if (appState.screen === 'ready') {
+        keyEntryEl.hidden = true;
+        readyEl.hidden = false;
+        document.getElementById('maskedKey').textContent = maskKey(appState.apiKey);
+      }
+    }
+
+    /* Helper for showing inline errors on the key-entry screen. */
+    function showKeyEntryError(message) {
+      const errorEl = document.getElementById('keyEntryError');
+      errorEl.textContent = message;
+      errorEl.hidden = false;
+    }
+
+    /* Event handler: Save key.
+       Reads the input value, validates it is non-empty, persists to
+       localStorage, then swaps to the ready screen. The input value is
+       cleared after save so the raw key is not left visible in the DOM. */
+    function onSaveKey() {
+      const input = document.getElementById('apiKeyInput');
+      const trimmed = (input.value || '').trim();
+      if (!trimmed) {
+        showKeyEntryError('Please paste your Anthropic API key first.');
+        return;
+      }
+      const result = saveStoredKey(trimmed);
+      if (!result.ok) {
+        showKeyEntryError("Your browser is blocking local storage. The app needs it to remember your key between visits.");
+        return;
+      }
+      input.value = '';
+      setState({ apiKey: trimmed, screen: 'ready' });
+    }
+
+    /* Event handler: Clear key.
+       Confirms with window.confirm, removes from localStorage, swaps back
+       to key-entry. Best-effort: even if removal fails, the in-memory key
+       is cleared so the UI matches the user's intent. */
+    function onClearKey() {
+      const ok = window.confirm('Remove the saved key from this browser? You will need to paste it again next time.');
+      if (!ok) return;
+      clearStoredKey();
+      setState({ apiKey: null, screen: 'key-entry' });
+    }
+
+    /* Event handler: Replace key.
+       Swaps to key-entry without confirmation. The stored key stays in
+       localStorage until the user clicks Save again with a new value. */
+    function onReplaceKey() {
+      setState({ screen: 'key-entry' });
+    }
+
+    /* Wire up DOM events and bootstrap state on initial load. */
+    document.addEventListener('DOMContentLoaded', function () {
+      document.getElementById('saveKeyBtn').addEventListener('click', onSaveKey);
+      document.getElementById('clearKeyBtn').addEventListener('click', onClearKey);
+      document.getElementById('replaceKeyBtn').addEventListener('click', onReplaceKey);
+
+      const stored = loadStoredKey();
+      if (stored) {
+        appState.apiKey = stored;
+        appState.screen = 'ready';
+      }
+      render();
+    });
+  </script>
+
+</body>
+</html>
