@@ -3,12 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-05-14T13:49:43.996Z"
+last_updated: "2026-05-14T14:14:20.250Z"
 progress:
   total_phases: 6
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
+  percent: 100
 ---
 
 # STATE
@@ -25,17 +26,17 @@ Single source of truth for project memory. Updated at every transition.
 ## Current Position
 
 - **Milestone**: v1
-- **Phase**: 0 - CORS and Provider Spike
+- **Phase**: 1 - Skeleton, State, Key Handling, Static Constants (ready to plan)
 - **Plan**: None yet
-- **Status**: Not started
-- **Progress**: [□□□□□□] 0 of 6 phases complete
+- **Status**: Phase 0 complete; ready for `/gsd-plan-phase 1`
+- **Progress**: [■□□□□□] 1 of 6 phases complete
 
 ## Performance Metrics
 
-- **Phases complete**: 0 of 6
-- **Requirements satisfied**: 0 of 30 v1 requirements
+- **Phases complete**: 1 of 6
+- **Requirements satisfied**: 1 of 30 v1 requirements (SPIKE-01)
 - **First-real-user pilot**: not yet attempted
-- **CORS spike**: not yet run
+- **CORS spike**: PASS (Anthropic direct browser fetch, desktop Chrome, 2026-05-14)
 
 ## Accumulated Context
 
@@ -57,8 +58,8 @@ Single source of truth for project memory. Updated at every transition.
 
 ### Open Todos
 
-- Phase 0 spike: deploy a throwaway HTML to real production host, fetch Gemini + OpenAI from desktop Chrome and iOS Safari
-- If spike fails, scaffold the Cloudflare Workers proxy fallback (~30 lines, no logging)
+- Phase 1 planning: amend SPIKE-01 wording (still references Gemini, OpenAI, iOS Safari; superseded by D-01, D-02, D-05), and drop KEY-04 (provider toggle) from REQUIREMENTS.md per Phase 0 outcome
+- Phase 1: pick a current Anthropic model id (do not reuse `claude-3-5-haiku-latest`, retired). Spike used `claude-haiku-4-5`.
 
 ### Active Blockers
 
@@ -76,8 +77,8 @@ None.
 
 ## Session Continuity
 
-- **Last session**: 2026-05-14, Phase 0 context gathered
-- **Next action**: Run `/gsd-plan-phase 0` to plan the Anthropic CORS spike on GitHub Pages
+- **Last session**: 2026-05-14, Phase 0 executed and PASSED (Anthropic CORS spike on desktop Chrome via GitHub Pages)
+- **Next action**: Run `/gsd-plan-phase 1` to plan Skeleton, State, Key Handling, Static Constants (committing to direct Anthropic fetch per Phase 0 outcome)
 - **Files of record**: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/ROADMAP.md`, `.planning/research/SUMMARY.md`, `.planning/phases/00-cors-and-provider-spike/00-CONTEXT.md`
 
 ---

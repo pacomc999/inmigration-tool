@@ -24,7 +24,7 @@ Hardcoded blocks: A (contact + hours), D, G, H. LLM-generated blocks: B (custom 
 
 ## Phases
 
-- [ ] **Phase 0: CORS and Provider Spike** - de-risk the load-bearing assumption that the browser can directly call Gemini and OpenAI from the deployed origin
+- [x] **Phase 0: CORS and Provider Spike** - de-risk the load-bearing assumption that the browser can directly call Gemini and OpenAI from the deployed origin
 - [ ] **Phase 1: Skeleton, State, Key Handling, Static Constants** - HTML scaffold, appState + setState + render, BYO key flow, hardcoded Migrationsamt constants, strict CSP, Blocks A/D/G/H static content in place
 - [ ] **Phase 2: LLM Round-Trip in English** - structured intake form, prompt building, JSON-schema response, error handling, loading state, consent before first generation
 - [ ] **Phase 3: Cheat Sheet Rendering, Print, Mobile, Onboarding, Privacy** - render Blocks A through H, two-column DE/native, print stylesheet, phone layout, onboarding, privacy page, non-dismissable disclaimer
@@ -44,7 +44,7 @@ Hardcoded blocks: A (contact + hours), D, G, H. LLM-generated blocks: B (custom 
   4. If any of the above fails, Plan B (Cloudflare Workers proxy) is committed with a working spike before Phase 1 starts
   5. Outcome documented in PROJECT.md Key Decisions and in a Phase 0 note (CORS-green or Plan-B chosen)
 **Plans**: 1 plan
-- [ ] 00-01-PLAN.md - Anthropic CORS spike on GitHub Pages (build spike/index.html, deploy via Pages, verify desktop Chrome fetch, record outcome in PROJECT.md Key Decisions)
+- [x] 00-01-PLAN.md - Anthropic CORS spike on GitHub Pages (build spike/index.html, deploy via Pages, verify desktop Chrome fetch, record outcome in PROJECT.md Key Decisions)
 
 Note: the Phase 0 Goal and Success Criteria above predate the discussion captured in `.planning/phases/00-cors-and-provider-spike/00-CONTEXT.md`. The CONTEXT decisions (D-01, D-02, D-05) narrow Phase 0 to Anthropic-only on desktop Chrome and supersede the Gemini/OpenAI/iOS Safari language above. The pre-existing wording is left intact here for traceability and will be amended formally during Phase 1 planning along with KEY-04.
 
@@ -113,7 +113,7 @@ Note: the Phase 0 Goal and Success Criteria above predate the discussion capture
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. CORS and Provider Spike | 0/1 | Planned | - |
+| 0. CORS and Provider Spike | 1/1 | Complete | 2026-05-14 |
 | 1. Skeleton, State, Key Handling, Static Constants | 0/0 | Not started | - |
 | 2. LLM Round-Trip in English | 0/0 | Not started | - |
 | 3. Cheat Sheet Rendering, Print, Mobile, Onboarding, Privacy | 0/0 | Not started | - |
