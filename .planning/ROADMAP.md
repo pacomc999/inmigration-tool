@@ -46,19 +46,21 @@ Hardcoded blocks: A (contact + hours), D, G, H. LLM-generated blocks: B (custom 
 **Plans**: 1 plan
 - [x] 00-01-PLAN.md - Anthropic CORS spike on GitHub Pages (build spike/index.html, deploy via Pages, verify desktop Chrome fetch, record outcome in PROJECT.md Key Decisions)
 
-Note: the Phase 0 Goal and Success Criteria above predate the discussion captured in `.planning/phases/00-cors-and-provider-spike/00-CONTEXT.md`. The CONTEXT decisions (D-01, D-02, D-05) narrow Phase 0 to Anthropic-only on desktop Chrome and supersede the Gemini/OpenAI/iOS Safari language above. The pre-existing wording is left intact here for traceability and will be amended formally during Phase 1 planning along with KEY-04.
+Note: the Phase 0 Goal and Success Criteria above predate the discussion captured in `.planning/phases/00-cors-and-provider-spike/00-CONTEXT.md`. The CONTEXT decisions (D-01, D-02, D-05) narrow Phase 0 to Anthropic-only on desktop Chrome and supersede the Gemini/OpenAI/iOS Safari language above. The pre-existing wording is left intact here for traceability; the formal amendment of the requirement set (dropping the obsolete provider-toggle requirement and rewriting SPIKE-01) was completed during Phase 1 Plan 02 housekeeping.
 
 ### Phase 1: Skeleton, State, Key Handling, Static Constants
 **Goal**: Lay the structural backbone the rest of the app hangs from, with the API key flow working end-to-end, the lifetime microphone guardrail in place, and every fact the LLM is forbidden to invent already hardcoded.
 **Depends on**: Phase 0
-**Requirements**: KEY-01, KEY-02, KEY-03, KEY-04, TRUST-04
+**Requirements**: KEY-01, KEY-02, KEY-03, TRUST-04
 **Success Criteria** (what must be TRUE):
   1. User can paste an OpenAI or Gemini API key into a `type="password"` field, save it, reload the page, and see the key still present (stored only in browser localStorage)
-  2. User can switch the active provider between Gemini and OpenAI, with Gemini as the default on first visit
+  2. Provider is hardcoded to Anthropic per Phase 0 outcome (D-01); the UI clearly states that the saved key is an Anthropic API key, so the user knows what their key is for.
   3. User can click "Clear key" and verify in DevTools that the key is gone from localStorage
   4. After save, the key input shows a masked representation (e.g. last 4 characters only), never the full key
   5. A strict CSP meta tag is in place, no third-party scripts load at runtime, and a `git grep` for `getUserMedia` returns zero matches (lifetime mic guardrail)
-**Plans**: TBD
+**Plans**: 2 plans
+- [x] 01-01-PLAN.md - Skeleton, CSP, appState/setState/render, BYO key flow (paste/save/mask/clear/replace), mic guardrail script, README
+- [ ] 01-02-PLAN.md - Migrationsamt constants (Block A facts, Block D panic phrases, Hochdeutsch request, Block H footer + escalations), final TRUST-04 grep, REQUIREMENTS.md + ROADMAP.md housekeeping
 **UI hint**: yes
 
 ### Phase 2: LLM Round-Trip in English
@@ -127,7 +129,7 @@ All 30 v1 requirements mapped, no orphans.
 | Phase | Requirements |
 |-------|--------------|
 | 0 | SPIKE-01 |
-| 1 | KEY-01, KEY-02, KEY-03, KEY-04, TRUST-04 |
+| 1 | KEY-01, KEY-02, KEY-03, TRUST-04 |
 | 2 | INTAKE-02, INTAKE-03, INTAKE-04, INTAKE-05, LLM-01, LLM-02, LLM-03, LLM-04, TRUST-02 |
 | 3 | CHEAT-01, CHEAT-02, CHEAT-03, CHEAT-04, CHEAT-05, CHEAT-06, CHEAT-07, CHEAT-08, PRINT-01, PRINT-02, PRINT-03, TRUST-01, TRUST-03, TRUST-05 |
 | 4 | INTAKE-01, LANG-01, LANG-02 |

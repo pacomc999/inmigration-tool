@@ -6,14 +6,13 @@ Scoped requirements for the v1.0 milestone of the Migrationsamt Zürich Call Hel
 
 ### Verification, Phase 0
 
-- [ ] **SPIKE-01**: Confirmed via deployed-origin spike that both Gemini and OpenAI accept direct browser `fetch` calls from the chosen host on Chrome and iOS Safari, or Plan B proxy committed
+- [x] **SPIKE-01**: Confirmed via deployed-origin spike that the Anthropic Messages API accepts direct browser fetch calls from the GitHub Pages production host on desktop Chrome, with the anthropic-dangerous-direct-browser-access: true header (per Phase 0 D-01, D-02, D-05).
 
 ### API Key & Settings (KEY)
 
-- [ ] **KEY-01**: User can paste their own OpenAI or Gemini API key into the app and have it persisted in browser localStorage only
+- [ ] **KEY-01**: User can paste their own Anthropic API key into the app and have it persisted in browser localStorage only
 - [ ] **KEY-02**: User can clear their stored API key in one click
 - [ ] **KEY-03**: API key input uses `type="password"` and the key is masked after save
-- [ ] **KEY-04**: User can switch between Gemini and OpenAI as their provider; Gemini is the default
 
 ### Situation Intake (INTAKE)
 
@@ -88,7 +87,7 @@ Scoped requirements for the v1.0 milestone of the Migrationsamt Zürich Call Hel
 
 ## Traceability
 
-Every active v1 requirement maps to exactly one phase. 30 of 30 mapped, 0 orphans.
+Every active v1 requirement maps to exactly one phase. 29 of 29 mapped, 0 orphans.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -96,7 +95,6 @@ Every active v1 requirement maps to exactly one phase. 30 of 30 mapped, 0 orphan
 | KEY-01 | Phase 1 | Pending |
 | KEY-02 | Phase 1 | Pending |
 | KEY-03 | Phase 1 | Pending |
-| KEY-04 | Phase 1 | Pending |
 | TRUST-04 | Phase 1 | Pending (lifetime guardrail, enforced from Phase 1 forward) |
 | INTAKE-02 | Phase 2 | Pending |
 | INTAKE-03 | Phase 2 | Pending |
