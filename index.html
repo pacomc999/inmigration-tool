@@ -423,6 +423,266 @@
     };
 
     /* ----------------------------------------------------------------------
+       ANTHROPIC API CONFIG (Phase 2 Plan 02)
+       Endpoint, current model id, and request defaults. Tied to the Phase 0
+       CORS spike outcome and the Phase 1 CSP connect-src lock.
+
+       Prompt caching is intentionally NOT enabled in v1. claude-haiku-4-5
+       requires 4096+ tokens of stable prefix to cache; our system prompt
+       plus schema is about 1300 tokens. Adding cache_control would silently
+       no-op. Re-evaluate post-pilot.
+
+       Model deprecation note: if Anthropic returns 404 from the messages
+       endpoint, the model id has probably been retired (Phase 0 hit this
+       with an older Haiku id). The fix is a one-line edit to
+       ANTHROPIC_API.model below; check Anthropic's model-deprecation page
+       for the current Haiku id.
+       ---------------------------------------------------------------------- */
+    const ANTHROPIC_API = {
+      endpoint: 'https://api.anthropic.com/v1/messages',
+      model: 'claude-haiku-4-5',
+      apiVersion: '2023-06-01',
+      maxTokens: 2500,
+      temperature: 0.3,
+    };
+
+    /* ----------------------------------------------------------------------
+       SYSTEM PROMPT (Phase 2 Plan 02, LLM-01)
+       This prompt is the load-bearing design artefact of Phase 2. It locks
+       the model role, lists forbidden behaviours with concrete refusal
+       patterns, scopes generation to Blocks B/C/E/F only, and anchors the
+       language to formal Hochdeutsch. The XML-style fence tags
+       (<role_boundaries>, <forbidden_behaviour>, <generation_scope>,
+       <language_anchors>, <edge_cases>) are LITERAL string content here:
+       inside a JS template literal the angle brackets are just characters,
+       not HTML tags.
+
+       The expected tuning trigger is the Phase 5 pilot debrief (per
+       STATE.md Open Questions). Do not edit casually.
+       ---------------------------------------------------------------------- */
+    const SYSTEM_PROMPT = `You are a preparation aid for a single phone call to the Migrationsamt of canton Zürich (the cantonal migration office of Zurich, Switzerland). A non-German-speaking user is about to make this call themselves. Your only job is to produce a tailored German cheat sheet in strict JSON, so the user has key phrases, likely questions, vocabulary, and a checklist in front of them during the call.
+
+<role_boundaries>
+You are NOT a legal advisor. You do NOT give immigration-law advice, permit-eligibility advice, or strategic advice about what the user "should" do. You are NOT a representative: you never speak to the Migrationsamt on the user's behalf, and the cheat sheet never instructs the user to lie, impersonate, or read your output verbatim if it would mislead the officer. You are NOT a live translator: this is preparation only, not real-time interpretation.
+</role_boundaries>
+
+<forbidden_behaviour>
+1. Never generate Migrationsamt contact details. If your output would include a phone number, email address, postal address, opening hours, or office name, omit it. Those facts are inserted by the calling application from a separately verified source. If the user asks for contact details, respond inside the schema that the calling application provides the contact details separately, and do not invent any.
+2. Never give permit-eligibility advice. Do not state "you qualify for permit X" or "you should apply for Y". If the user's free-text situation asks "can I get a C permit", treat the call as a status check or appointment-booking call, and let the officer answer eligibility on the phone.
+3. Never give strategic legal advice. Do not suggest withholding information from the officer, framing the situation a certain way to improve outcomes, or workarounds. The cheat sheet is for clarity, not strategy.
+4. Never produce content outside the schema. Do not add an introduction, an explanation, an apology, or a markdown code fence. The response is strict JSON, nothing else.
+5. Never invent reference numbers, AHV numbers, dates, or facts the user did not provide. If a field is empty in the intake, leave any sentence that would use it out of the German script.
+</forbidden_behaviour>
+
+<generation_scope>
+Generate ONLY these blocks of the cheat sheet, in the JSON schema provided by the calling application:
+- Block B: opening script (3-5 lines), including a one-sentence statement of the user's goal in formal Hochdeutsch and an optional reference-number sentence if the intake provides one.
+- Block C: likely officer questions and suggested answers, at least 4 entries, covering the user's chosen reason-for-calling topic, with both affirmative and negative answer forms in German plus English glosses.
+- Block E: vocabulary mini-glossary, 6 to 12 German domain words relevant to the user's situation, each with the correct article (der/die/das) and English translation.
+- Block F: prep checklist tailored to the intake, 5 to 10 actionable items (documents to have ready, reference numbers, phone charged, sheet open).
+
+Do NOT generate the call header, panic phrases, note-taking lines, or footer notice. Those are hardcoded by the calling application.
+</generation_scope>
+
+<language_anchors>
+- All German fields use formal Hochdeutsch (Standard German), suitable for a phone call with a cantonal civil servant. Use "Sie" form throughout. Avoid Swiss German, dialect, and colloquialisms.
+- All English-gloss fields use plain, clear English aimed at a non-native speaker preparing for the call.
+- Tone is bureaucratic, polite, concise. Match the register the Migrationsamt itself uses in published correspondence: "Sehr geehrte Damen und Herren", "Ich möchte...", "Können Sie mir bitte mitteilen, ob...".
+</language_anchors>
+
+<edge_cases>
+- If the user's free-text situation is empty: still generate Blocks B, C, E, F based on permit type and reason-for-calling alone. Make Block F slightly more generic.
+- If the user's free-text situation is gibberish or in a language you cannot parse: produce a Block B with a minimal opening, a Block C with the 4 most common questions for the chosen reason-for-calling, a generic Block E, and a Block F that includes "Have a clear summary of your situation written down before calling".
+- If the user's free-text situation is off-topic for the Migrationsamt (e.g. "I want to cancel my Spotify subscription"): produce a Block B that politely asks the officer to clarify whether they are the correct office, a Block C with a handful of generic clarification questions, a generic Block E, and a Block F that includes "Confirm that the Migrationsamt is the correct office for your concern before going further".
+</edge_cases>
+
+Reply in JSON only. The calling application enforces the schema via the API's structured-output feature; your response must validate against it.`;
+
+    /* ----------------------------------------------------------------------
+       CHEAT SHEET SCHEMA (Phase 2 Plan 02, LLM-02)
+       The strict JSON shape the LLM must return. Enforced server-side via
+       output_config.format on every request. Phase 3 rendering reads the
+       SAME shape; any field rename here requires a matching Phase 3 edit.
+       Field names are descriptive (Francisco's locked decision):
+       germanLine, englishGloss, germanQuestion, affirmativeGerman, etc.
+       ---------------------------------------------------------------------- */
+    const CHEAT_SHEET_SCHEMA = {
+      type: 'object',
+      properties: {
+        blockB: {
+          type: 'object',
+          description: 'Opening script: user-goal sentence plus 3-5 opening lines.',
+          properties: {
+            userGoalSentence: {
+              type: 'string',
+              description: 'One sentence in formal Hochdeutsch stating what the user wants from the call, with the case reference number inserted if provided in the intake.',
+            },
+            userGoalGloss: {
+              type: 'string',
+              description: 'Plain-English gloss of userGoalSentence.',
+            },
+            openingScript: {
+              type: 'array',
+              minItems: 3,
+              maxItems: 5,
+              description: 'The opening lines the user reads at call start. Must include the Hochdeutsch-request sentence by default. Each item is one DE/EN pair.',
+              items: {
+                type: 'object',
+                properties: {
+                  germanLine: { type: 'string' },
+                  englishGloss: { type: 'string' },
+                },
+                required: ['germanLine', 'englishGloss'],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ['userGoalSentence', 'userGoalGloss', 'openingScript'],
+          additionalProperties: false,
+        },
+        blockC: {
+          type: 'array',
+          minItems: 4,
+          maxItems: 6,
+          description: 'Likely officer questions with suggested affirmative and negative answers, in formal Hochdeutsch with English glosses.',
+          items: {
+            type: 'object',
+            properties: {
+              germanQuestion: { type: 'string' },
+              englishGloss: { type: 'string' },
+              affirmativeGerman: { type: 'string' },
+              affirmativeEnglish: { type: 'string' },
+              negativeGerman: { type: 'string' },
+              negativeEnglish: { type: 'string' },
+            },
+            required: [
+              'germanQuestion', 'englishGloss',
+              'affirmativeGerman', 'affirmativeEnglish',
+              'negativeGerman', 'negativeEnglish',
+            ],
+            additionalProperties: false,
+          },
+        },
+        blockE: {
+          type: 'array',
+          minItems: 6,
+          maxItems: 12,
+          description: 'Vocabulary mini-glossary, 6-12 entries, each with article and English translation.',
+          items: {
+            type: 'object',
+            properties: {
+              article: {
+                type: 'string',
+                enum: ['der', 'die', 'das'],
+              },
+              germanWord: { type: 'string' },
+              englishTranslation: { type: 'string' },
+            },
+            required: ['article', 'germanWord', 'englishTranslation'],
+            additionalProperties: false,
+          },
+        },
+        blockF: {
+          type: 'array',
+          minItems: 5,
+          maxItems: 10,
+          description: 'Prep checklist tailored to the intake. Each item is one actionable English line.',
+          items: { type: 'string' },
+        },
+      },
+      required: ['blockB', 'blockC', 'blockE', 'blockF'],
+      additionalProperties: false,
+    };
+
+    /* ----------------------------------------------------------------------
+       MOCK CHEAT SHEET FIXTURE (Phase 2 Plan 02)
+       Used by the ?mock=1 URL flag. This object validates against
+       CHEAT_SHEET_SCHEMA by construction and is the source of truth for
+       Phase 3 rendering iteration without burning real API tokens. Keep it
+       readable so future maintainers can compare with real LLM output.
+       ---------------------------------------------------------------------- */
+    const MOCK_CHEAT_SHEET = {
+      blockB: {
+        userGoalSentence: 'Guten Tag, ich rufe an, um den Status meiner B-Bewilligungsverlängerung zu erfragen.',
+        userGoalGloss: 'Hello, I am calling to check the status of my B permit renewal.',
+        openingScript: [
+          {
+            germanLine: 'Guten Tag, mein Name ist [Ihr Name].',
+            englishGloss: 'Hello, my name is [your name].',
+          },
+          {
+            germanLine: 'Können wir bitte auf Hochdeutsch sprechen? Mein Schweizerdeutsch ist nicht so gut.',
+            englishGloss: 'Could we please speak Standard German? My Swiss German is not very good.',
+          },
+          {
+            germanLine: 'Ich rufe an, um den Status meiner B-Bewilligungsverlängerung zu erfragen.',
+            englishGloss: 'I am calling to check the status of my B permit renewal.',
+          },
+          {
+            germanLine: 'Haben Sie einen Moment Zeit für mich?',
+            englishGloss: 'Do you have a moment for me?',
+          },
+        ],
+      },
+      blockC: [
+        {
+          germanQuestion: 'Haben Sie Ihre AHV-Nummer zur Hand?',
+          englishGloss: 'Do you have your AHV number at hand?',
+          affirmativeGerman: 'Ja, meine AHV-Nummer lautet [Nummer vorlesen].',
+          affirmativeEnglish: 'Yes, my AHV number is [read out the number].',
+          negativeGerman: 'Nein, ich habe sie gerade nicht zur Hand. Kann ich sie nachreichen?',
+          negativeEnglish: 'No, I do not have it at hand. Can I provide it later?',
+        },
+        {
+          germanQuestion: 'Wann läuft Ihre aktuelle Bewilligung ab?',
+          englishGloss: 'When does your current permit expire?',
+          affirmativeGerman: 'Sie läuft am [Datum] ab.',
+          affirmativeEnglish: 'It expires on [date].',
+          negativeGerman: 'Das genaue Datum weiss ich nicht, ich kann aber kurz nachsehen.',
+          negativeEnglish: 'I do not know the exact date, but I can check briefly.',
+        },
+        {
+          germanQuestion: 'Sind Sie noch bei derselben Arbeitsstelle?',
+          englishGloss: 'Are you still at the same job?',
+          affirmativeGerman: 'Ja, ich arbeite weiterhin bei [Arbeitgeber].',
+          affirmativeEnglish: 'Yes, I am still working at [employer].',
+          negativeGerman: 'Nein, ich habe die Stelle gewechselt.',
+          negativeEnglish: 'No, I have changed jobs.',
+        },
+        {
+          germanQuestion: 'Hat sich Ihre Adresse geändert?',
+          englishGloss: 'Has your address changed?',
+          affirmativeGerman: 'Ja, meine neue Adresse lautet [Adresse].',
+          affirmativeEnglish: 'Yes, my new address is [address].',
+          negativeGerman: 'Nein, meine Adresse ist unverändert.',
+          negativeEnglish: 'No, my address has not changed.',
+        },
+      ],
+      blockE: [
+        { article: 'die', germanWord: 'Bewilligung', englishTranslation: 'permit' },
+        { article: 'der', germanWord: 'Antrag', englishTranslation: 'application' },
+        { article: 'die', germanWord: 'Verlängerung', englishTranslation: 'renewal' },
+        { article: 'das', germanWord: 'Dokument', englishTranslation: 'document' },
+        { article: 'die', germanWord: 'Frist', englishTranslation: 'deadline' },
+        { article: 'die', germanWord: 'Aufenthaltsbewilligung', englishTranslation: 'residence permit' },
+      ],
+      blockF: [
+        'Have your current permit card in front of you.',
+        'Have your AHV number written down.',
+        'Have your employer name and address ready.',
+        'Have a pen and paper to take notes.',
+        'Be in a quiet place with good phone reception.',
+      ],
+    };
+
+    /* ----------------------------------------------------------------------
+       MOCK CHEAT SHEET BROKEN (Phase 2 Plan 02)
+       Used by the ?mock=broken URL flag. Deliberately malformed JSON-shaped
+       text so JSON.parse throws and the app lands on the parse-error class.
+       ---------------------------------------------------------------------- */
+    const MOCK_CHEAT_SHEET_BROKEN = '{"blockB": {"userGoalSentence": "incomplete';
+
+    /* ----------------------------------------------------------------------
        STATE MACHINE EXTENSION (Phase 2 Plan 01)
        Phase 2 widens the screen union from 'key-entry' | 'ready' to
        'key-entry' | 'intake' | 'generating' | 'result' | 'error'.
