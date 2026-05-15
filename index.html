@@ -576,9 +576,11 @@ Reply in JSON only. The calling application enforces the schema via the API's st
             },
             openingScript: {
               type: 'array',
-              minItems: 3,
-              maxItems: 5,
-              description: 'The opening lines the user reads at call start. Must include the Hochdeutsch-request sentence by default. Each item is one DE/EN pair.',
+              // Anthropic structured-output JSON schema only allows minItems
+              // values of 0 or 1, and treats maxItems as unsupported on top of
+              // grammar-constrained sampling. Counts (3 to 5 lines) are
+              // enforced by the SYSTEM_PROMPT and this description instead.
+              description: 'The opening lines the user reads at call start, 3 to 5 lines. Must include the Hochdeutsch-request sentence by default. Each item is one DE/EN pair.',
               items: {
                 type: 'object',
                 properties: {
@@ -595,9 +597,9 @@ Reply in JSON only. The calling application enforces the schema via the API's st
         },
         blockC: {
           type: 'array',
-          minItems: 4,
-          maxItems: 6,
-          description: 'Likely officer questions with suggested affirmative and negative answers, in formal Hochdeutsch with English glosses.',
+          // Count (4 to 6 entries) enforced by SYSTEM_PROMPT and description,
+          // not by minItems/maxItems (Anthropic structured-output limit).
+          description: 'Likely officer questions with suggested affirmative and negative answers, 4 to 6 entries, in formal Hochdeutsch with English glosses.',
           items: {
             type: 'object',
             properties: {
@@ -618,9 +620,8 @@ Reply in JSON only. The calling application enforces the schema via the API's st
         },
         blockE: {
           type: 'array',
-          minItems: 6,
-          maxItems: 12,
-          description: 'Vocabulary mini-glossary, 6-12 entries, each with article and English translation.',
+          // Count (6 to 12 entries) enforced by SYSTEM_PROMPT and description.
+          description: 'Vocabulary mini-glossary, 6 to 12 entries, each with article and English translation.',
           items: {
             type: 'object',
             properties: {
@@ -637,9 +638,8 @@ Reply in JSON only. The calling application enforces the schema via the API's st
         },
         blockF: {
           type: 'array',
-          minItems: 5,
-          maxItems: 10,
-          description: 'Prep checklist tailored to the intake. Each item is one actionable English line.',
+          // Count (5 to 10 items) enforced by SYSTEM_PROMPT and description.
+          description: 'Prep checklist tailored to the intake, 5 to 10 actionable lines in English.',
           items: { type: 'string' },
         },
       },
@@ -752,7 +752,7 @@ Reply in JSON only. The calling application enforces the schema via the API's st
       apiKey: null,         // raw key, in memory only, never written via innerHTML
       lastIntake: null,     // snapshot of the most recent intake form (Plan 02 consumes)
       cheatSheet: null,     // parsed LLM JSON (Plan 02 populates)
-      errorClass: null,     // 'auth' | 'rate-limit' | 'server' | 'parse' | 'network' (Plan 02)
+      errorClass: null,     // 'auth' | 'rate-limit' | 'server' | 'bad-request' | 'parse' | 'network' (Plan 02)
       errorDetail: null,    // { httpStatus?, bodyText?, message? } (Plan 02)
       consentGiven: false,  // mirrored from localStorage on load (TRUST-02)
     };
@@ -852,6 +852,10 @@ Reply in JSON only. The calling application enforces the schema via the API's st
       'server': {
         heading: 'The AI service is having a problem',
         body: 'The AI service returned an error from their side. This usually clears up by itself within a few minutes. Try again, or come back later.',
+      },
+      'bad-request': {
+        heading: 'The request to the AI service was rejected',
+        body: 'The AI service refused this request. This usually means a bug in the app and not something you can fix. Try again. If it keeps happening, this is worth reporting along with the technical details below.',
       },
       'parse': {
         heading: 'Something went wrong reading the response',
@@ -1257,9 +1261,13 @@ Reply in JSON only. The calling application enforces the schema via the API's st
       if (!response.ok) {
         let bodyText = '';
         try { bodyText = await response.text(); } catch (e) { bodyText = ''; }
+        // Map HTTP status to a user-facing error class.
+        // 401 = bad/missing key, 429 = rate-limited, 5xx = AI service problem,
+        // any other 4xx = the request itself was rejected (likely a bug here).
         let errorClass = 'server';
         if (response.status === 401) errorClass = 'auth';
         else if (response.status === 429) errorClass = 'rate-limit';
+        else if (response.status >= 400 && response.status < 500) errorClass = 'bad-request';
         // Dev-friendly breadcrumb: status only, NEVER the key or the body.
         console.warn('LLM call failed: HTTP', response.status);
         return {
