@@ -98,6 +98,71 @@
       border-radius: 3px;
     }
 
+    /* Phase 2 Plan 01: intake screen styles. Match Phase 1 spacing. */
+    /* Key header strip at the top of the intake screen. */
+    .intake-key-header {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 0.9rem;
+      color: #555;
+      background: #f8f8f8;
+      padding: 0.5rem 0.75rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+    .intake-key-header span#intakeMaskedKey {
+      font-family: monospace;
+      background: #fff;
+      padding: 0.1rem 0.4rem;
+      border-radius: 3px;
+      border: 1px solid #ddd;
+    }
+    /* The header strip's small buttons should not have the default
+       full-size button styling so they line up next to the key text. */
+    .intake-key-header button {
+      margin-top: 0;
+      padding: 0.25rem 0.6rem;
+      font-size: 0.85rem;
+    }
+
+    /* Form inputs inside the intake screen. */
+    #intake select,
+    #intake input[type="text"],
+    #intake input[type="date"],
+    #intake textarea {
+      width: 100%;
+      padding: 0.5rem;
+      font-size: 1rem;
+      box-sizing: border-box;
+      margin-top: 0.25rem;
+    }
+    #intake textarea {
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    /* Consent block: visually distinct so the user notices it. */
+    #intakeConsent {
+      background: #fff8e1;
+      border: 1px solid #f5d98a;
+      padding: 0.75rem 1rem;
+      border-radius: 4px;
+      margin-top: 1.5rem;
+    }
+    #intakeConsent h3 {
+      margin-top: 0;
+      font-size: 1rem;
+    }
+    #intakeConsent label {
+      font-weight: normal;
+      margin-top: 0.75rem;
+    }
+    #intakeConsent input[type="checkbox"] {
+      margin-right: 0.4rem;
+    }
+
     /* Footer disclaimer pinned at the bottom of the column. */
     footer {
       margin-top: 3rem;
@@ -119,12 +184,12 @@
 
     <!-- Screen 1: key entry. Visible when no key is stored. -->
     <section id="keyEntry">
-      <h2>Bring your own Anthropic API key</h2>
+      <h2>Bring your own API key</h2>
       <p class="helper">
-        This tool runs entirely in your browser. To generate your cheat sheet it needs to call Anthropic's Claude API on your behalf. You provide the key, the key stays in your browser, and nothing else is sent anywhere. No backend, no logging, no accounts.
+        This tool runs entirely in your browser. To generate your cheat sheet it needs to call the AI service on your behalf. You provide the key, the key stays in your browser, and nothing else is sent anywhere. No backend, no logging, no accounts.
       </p>
 
-      <label for="apiKeyInput">Your Anthropic API key</label>
+      <label for="apiKeyInput">Your API key</label>
       <input id="apiKeyInput" type="password" placeholder="sk-ant-..." autocomplete="off">
       <p class="under-input">Stored only in your browser's local storage. Click "Clear key" any time to remove it.</p>
 
@@ -139,6 +204,91 @@
       <p>Stored key: <span id="maskedKey"></span></p>
       <button id="replaceKeyBtn" type="button">Replace key</button>
       <button id="clearKeyBtn" type="button">Clear key</button>
+    </section>
+
+    <!-- Phase 2 Plan 01: intake screen (INTAKE-02..05, TRUST-02) -->
+    <section id="intake" hidden>
+
+      <!-- Inline key header strip: masked key + Replace + Clear, so the user
+           never has to leave the intake form to manage their saved key. -->
+      <div class="intake-key-header">
+        <span>Key:</span>
+        <span id="intakeMaskedKey"></span>
+        <button id="intakeReplaceKey" type="button">Replace key</button>
+        <button id="intakeClearKey" type="button">Clear key</button>
+      </div>
+
+      <h2>Tell us about your call</h2>
+      <p class="helper">Fill in what you know. Optional fields can be skipped. The cheat sheet is built from this in one single call to the AI service.</p>
+
+      <!-- INTAKE-02: permit type, fixed dropdown of 9 real options. -->
+      <label for="permitType">What permit do you hold?</label>
+      <select id="permitType" required>
+        <option value="" selected disabled>Choose one</option>
+        <option value="L">L permit (short-term residence)</option>
+        <option value="B">B permit (residence)</option>
+        <option value="C">C permit (settlement)</option>
+        <option value="Ci">Ci permit (residence with gainful employment for spouses of diplomats)</option>
+        <option value="G">G permit (cross-border commuter)</option>
+        <option value="N">N permit (asylum seeker)</option>
+        <option value="F">F permit (temporary admission)</option>
+        <option value="S">S permit (protection status)</option>
+        <option value="unknown">I don't know</option>
+      </select>
+
+      <!-- INTAKE-03: reason for calling, curated dropdown of 10 real options. -->
+      <label for="callReason">What is the call about?</label>
+      <select id="callReason" required>
+        <option value="" selected disabled>Choose one</option>
+        <option value="renewal">Permit renewal</option>
+        <option value="change_status">Change of status</option>
+        <option value="family_reunification">Family reunification</option>
+        <option value="work_permit_change">Work-permit change</option>
+        <option value="address_change">Address change</option>
+        <option value="missing_document">Missing document</option>
+        <option value="lost_permit">Lost permit</option>
+        <option value="status_check">Status check on a pending application</option>
+        <option value="appointment_booking">Booking an appointment</option>
+        <option value="other">Other</option>
+      </select>
+
+      <!-- INTAKE-04: three optional reference inputs. No validation patterns. -->
+      <h3>Reference details (optional)</h3>
+      <p class="helper">Skip any you do not have. The cheat sheet still works without them.</p>
+
+      <label for="caseRef">Case reference number</label>
+      <input type="text" id="caseRef" placeholder="e.g. ZH-12345">
+
+      <label for="ahv">AHV number</label>
+      <input type="text" id="ahv" placeholder="756.xxxx.xxxx.xx">
+
+      <label for="appointmentDate">Appointment date, if any</label>
+      <input type="date" id="appointmentDate">
+
+      <!-- INTAKE-05: free-text situation, required. -->
+      <label for="situationText">Briefly describe your situation in English</label>
+      <textarea id="situationText" rows="4" required></textarea>
+      <p class="under-input">A few sentences is enough. The tool uses this to tailor the questions and checklist. Do not paste anything you would not want sent to the AI service.</p>
+
+      <!-- TRUST-02: consent block, shown only when consentGiven is false. -->
+      <section id="intakeConsent" hidden>
+        <h3>Before we send this to the AI service</h3>
+        <p>When you click "Generate cheat sheet", the following information is sent in one single API call to the AI service using your saved API key:</p>
+        <ul>
+          <li>your permit type and the reason for your call</li>
+          <li>any reference numbers, AHV number, and appointment date you typed in</li>
+          <li>the free-text description of your situation you just wrote</li>
+        </ul>
+        <p>Nothing else leaves your browser. There is no backend, no logs, no analytics. The AI provider's own data-handling policies apply to the request itself.</p>
+        <label><input type="checkbox" id="consentCheckbox"> I understand what is being sent and I want to continue.</label>
+      </section>
+
+      <!-- Generate button: starts disabled. validateIntake toggles it. -->
+      <button type="button" id="generateButton" disabled>Generate cheat sheet</button>
+
+      <!-- Inline error region for validation hints. Plan 02 may reuse it. -->
+      <p id="intakeError" class="error" role="status"></p>
+
     </section>
 
   </main>
@@ -462,7 +612,7 @@
       const input = document.getElementById('apiKeyInput');
       const trimmed = (input.value || '').trim();
       if (!trimmed) {
-        showKeyEntryError('Please paste your Anthropic API key first.');
+        showKeyEntryError('Please paste your API key first.');
         return;
       }
       const result = saveStoredKey(trimmed);
@@ -505,6 +655,73 @@
     // Aliases kept so Phase 1's event-listener wiring below still works.
     const onClearKey = handleClearKey;
     const onReplaceKey = handleReplaceKey;
+
+    /* ----------------------------------------------------------------------
+       INTAKE FORM (Phase 2 Plan 01)
+       The intake screen captures permit type, reason for calling, three
+       optional reference fields, and a free-text situation. A consent
+       checkbox gates the first generation per TRUST-02. The Generate
+       button is disabled until every required field is filled AND consent
+       is satisfied. Plan 02 replaces onGenerateClick's body with the real
+       LLM round-trip; for Plan 01 the click just snapshots the intake.
+       ---------------------------------------------------------------------- */
+
+    /* validateIntake reads the four required inputs and decides whether
+       the Generate button should be enabled. Consent is satisfied either
+       implicitly (appState.consentGiven is already true) or by ticking
+       the visible consent checkbox in the same session. */
+    function validateIntake() {
+      const permitEl = document.getElementById('permitType');
+      const reasonEl = document.getElementById('callReason');
+      const situationEl = document.getElementById('situationText');
+      const consentEl = document.getElementById('consentCheckbox');
+      const generateEl = document.getElementById('generateButton');
+      const errorEl = document.getElementById('intakeError');
+
+      if (!permitEl || !reasonEl || !situationEl || !generateEl) return;
+
+      const permitOk = (permitEl.value || '').length > 0;
+      const reasonOk = (reasonEl.value || '').length > 0;
+      const situationOk = (situationEl.value || '').trim().length > 0;
+      // Consent is satisfied if it was already given OR the checkbox is now ticked.
+      const consentOk = appState.consentGiven === true || (consentEl && consentEl.checked === true);
+
+      const isValid = permitOk && reasonOk && situationOk && consentOk;
+      generateEl.disabled = !isValid;
+
+      // Clear any stale validation message once the form becomes valid.
+      if (isValid && errorEl) {
+        errorEl.textContent = '';
+      }
+    }
+
+    /* onGenerateClick snapshots the intake into appState.lastIntake. In
+       Plan 01 this is a stub: it persists consent and console.warns so
+       the executor of Plan 02 can find the splice point. Plan 02 replaces
+       this body with the real LLM round-trip and screen swap to 'generating'. */
+    function onGenerateClick() {
+      // Read the trimmed values from each field. Optional fields may be empty.
+      const permit = (document.getElementById('permitType').value || '').trim();
+      const reason = (document.getElementById('callReason').value || '').trim();
+      const caseRef = (document.getElementById('caseRef').value || '').trim();
+      const ahv = (document.getElementById('ahv').value || '').trim();
+      const appointmentDate = (document.getElementById('appointmentDate').value || '').trim();
+      const situation = (document.getElementById('situationText').value || '').trim();
+
+      const snapshot = { permit, reason, caseRef, ahv, appointmentDate, situation };
+
+      // Persist consent the first time the user ticks the checkbox and submits.
+      const consentEl = document.getElementById('consentCheckbox');
+      if (appState.consentGiven === false && consentEl && consentEl.checked === true) {
+        saveConsent();
+        appState.consentGiven = true;
+      }
+
+      setState({ lastIntake: snapshot });
+
+      // Stub: Phase 2 Plan 02 replaces this body with the LLM round-trip.
+      console.warn('Plan 02 wires the LLM call here. Intake snapshot:', appState.lastIntake);
+    }
 
     /* Wire up DOM events and bootstrap state on initial load. */
     document.addEventListener('DOMContentLoaded', function () {
