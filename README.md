@@ -9,6 +9,10 @@ The app runs entirely in the browser. The user brings their own Anthropic API ke
 - v1 app: https://pacomc999.github.io/inmigration-tool/
 - Phase 0 spike (kept as historical artifact): https://pacomc999.github.io/inmigration-tool/spike/
 
+Each real generation costs roughly USD 0.01 against `claude-haiku-4-5` (about 1500 input tokens and 1200 output tokens, per the AI provider's published pricing as of 2026-05-14).
+
+If the AI service returns a 404 from the messages endpoint, the model id may have been retired. Update `ANTHROPIC_API.model` in `index.html` and consult the AI provider's model deprecation page.
+
 ## Platform scope
 
 v1 targets desktop Chrome only (per Phase 0 decision D-05). iOS Safari and mobile are out of scope until v2.
@@ -38,3 +42,12 @@ Six things that bite beginners working on this project. Keep this list in mind.
 5. **Hardcoded constants drifting out of date.** Migrationsamt phone, hours, and 2026 holidays are hardcoded constants. The LLM is permanently forbidden from generating contact info. Re-verify these facts against zh.ch before any pilot launch and annually thereafter.
 
 6. **Accidental third-party CDN.** Vanilla HTML, CSS, and JS only. No npm, no build step, no CDN script tags. If a feature genuinely needs a small library, copy the file into the repo and serve it self-hosted under `'self'`. v1 needs no libraries.
+
+## Mock fixtures (dev only)
+
+Two URL flags short-circuit the real AI service call so you can iterate on the UI without burning API tokens or waiting 10 to 20 seconds per click.
+
+- `?mock=1` returns a hardcoded cheat sheet fixture (`MOCK_CHEAT_SHEET` inside `index.html`) after a short simulated delay. The result screen renders Blocks B, C, E, and F from the fixture. Useful for iterating on layout, styling, and screen transitions.
+- `?mock=broken` returns a deliberately malformed JSON string. The parser fails and the app routes to the parse-error screen. Useful for sanity-checking the error path UI.
+
+Open the file from disk with the flag appended, for example `file:///.../index.html?mock=1`. No real API call is made under either flag, and your saved API key is not touched.
