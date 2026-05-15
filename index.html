@@ -272,16 +272,53 @@
       ],
     };
 
+    /* ----------------------------------------------------------------------
+       STATE MACHINE EXTENSION (Phase 2 Plan 01)
+       Phase 2 widens the screen union from 'key-entry' | 'ready' to
+       'key-entry' | 'intake' | 'generating' | 'result' | 'error'.
+       The 'ready' value is dropped as a reachable screen: a saved key now
+       routes the user straight to 'intake'. See 02-RESEARCH.md Section 8.
+       Phase 2 Plan 01 only implements 'key-entry' and 'intake'; the other
+       three branches are stubbed and Plan 02 will fill them in.
+       ---------------------------------------------------------------------- */
+
     /* State: appState is the single source of truth for what the UI shows. */
     const appState = {
-      screen: 'key-entry',  // 'key-entry' | 'ready'
+      // 'key-entry' | 'intake' | 'generating' | 'result' | 'error'
+      screen: 'key-entry',
       apiKey: null,         // raw key, in memory only, never written via innerHTML
+      lastIntake: null,     // snapshot of the most recent intake form (Plan 02 consumes)
+      cheatSheet: null,     // parsed LLM JSON (Plan 02 populates)
+      errorClass: null,     // 'auth' | 'rate-limit' | 'server' | 'parse' | 'network' (Plan 02)
+      errorDetail: null,    // { httpStatus?, bodyText?, message? } (Plan 02)
+      consentGiven: false,  // mirrored from localStorage on load (TRUST-02)
     };
 
     /* localStorage helpers, all wrapped in try/catch so private-browsing or
        quota errors do not crash the app. Namespaced key prevents collisions
        with other projects on the same GitHub Pages origin. */
     const STORAGE_KEY = 'migrationsamt.anthropicKey';
+
+    /* Consent persistence (TRUST-02). The consent gate is not security
+       critical: any read or write failure is silently treated as "no
+       consent recorded" so the user simply sees the consent block again. */
+    const CONSENT_STORAGE_KEY = 'migrationsamt.consentGiven';
+
+    function loadConsent() {
+      try {
+        return localStorage.getItem(CONSENT_STORAGE_KEY) === 'true';
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function saveConsent() {
+      try {
+        localStorage.setItem(CONSENT_STORAGE_KEY, 'true');
+      } catch (err) {
+        // Best effort: if storage is blocked, consent simply will not persist.
+      }
+    }
 
     function loadStoredKey() {
       try {
@@ -325,23 +362,88 @@
       render();
     }
 
+    /* Placeholder for the three screens Plan 02 will own. Hides every
+       known screen section so the UI does not show stale content, and
+       leaves a console.warn breadcrumb so Plan 02's executor can find it. */
+    function renderUnimplemented(screen) {
+      const sections = ['keyEntry', 'ready', 'intake'];
+      sections.forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el) el.hidden = true;
+      });
+      console.warn('render(): screen "' + screen + '" is not implemented yet. Plan 02 wires it up.');
+    }
+
     /* render reads appState and toggles section visibility. Idempotent.
-       The masked key is written via textContent only, never innerHTML. */
+       Every dynamic DOM write uses textContent, never innerHTML. */
     function render() {
+      // Defensive coerce step: 'ready' is no longer a reachable screen in
+      // Phase 2, but if anything sneaks it in we route to 'intake' instead.
+      if (appState.screen === 'ready') {
+        setState({ screen: 'intake' });
+        return;
+      }
+
       const keyEntryEl = document.getElementById('keyEntry');
       const readyEl = document.getElementById('ready');
+      const intakeEl = document.getElementById('intake');
       const errorEl = document.getElementById('keyEntryError');
 
-      if (appState.screen === 'key-entry') {
-        keyEntryEl.hidden = false;
-        readyEl.hidden = true;
-        // Clear any stale error when returning to the key-entry screen.
-        errorEl.hidden = true;
-        errorEl.textContent = '';
-      } else if (appState.screen === 'ready') {
-        keyEntryEl.hidden = true;
-        readyEl.hidden = false;
-        document.getElementById('maskedKey').textContent = maskKey(appState.apiKey);
+      switch (appState.screen) {
+        case 'key-entry': {
+          keyEntryEl.hidden = false;
+          if (readyEl) readyEl.hidden = true;
+          if (intakeEl) intakeEl.hidden = true;
+          // Clear any stale error when returning to the key-entry screen.
+          errorEl.hidden = true;
+          errorEl.textContent = '';
+          return;
+        }
+        case 'intake': {
+          keyEntryEl.hidden = true;
+          if (readyEl) readyEl.hidden = true;
+          if (intakeEl) intakeEl.hidden = false;
+
+          // Populate the masked-key header strip via textContent.
+          const maskedEl = document.getElementById('intakeMaskedKey');
+          if (maskedEl) maskedEl.textContent = maskKey(appState.apiKey);
+
+          // Show or hide the consent block based on consentGiven.
+          const consentEl = document.getElementById('intakeConsent');
+          if (consentEl) consentEl.hidden = appState.consentGiven === true;
+
+          // Repopulate form fields from lastIntake if we have one.
+          // Plan 02 routes users back to intake after errors with lastIntake
+          // populated. On first arrival it is null and we leave fields alone.
+          if (appState.lastIntake) {
+            const li = appState.lastIntake;
+            const setVal = function (id, v) {
+              const el = document.getElementById(id);
+              if (el && typeof v === 'string') el.value = v;
+            };
+            setVal('permitType', li.permit);
+            setVal('callReason', li.reason);
+            setVal('caseRef', li.caseRef);
+            setVal('ahv', li.ahv);
+            setVal('appointmentDate', li.appointmentDate);
+            setVal('situationText', li.situation);
+          }
+
+          // Make sure the Generate button starts in the right state.
+          validateIntake();
+          return;
+        }
+        case 'generating':
+        case 'result':
+        case 'error': {
+          renderUnimplemented(appState.screen);
+          return;
+        }
+        default: {
+          // Unknown screen value: hide everything to avoid stale UI.
+          renderUnimplemented(appState.screen);
+          return;
+        }
       }
     }
 
@@ -369,37 +471,76 @@
         return;
       }
       input.value = '';
-      setState({ apiKey: trimmed, screen: 'ready' });
+      // Phase 2: a saved key routes straight to the intake form. The
+      // standalone 'ready' screen is no longer reachable in the normal flow.
+      setState({ apiKey: trimmed, screen: 'intake' });
     }
 
     /* Event handler: Clear key.
-       Confirms with window.confirm, removes from localStorage, swaps back
-       to key-entry. Best-effort: even if removal fails, the in-memory key
-       is cleared so the UI matches the user's intent. */
-    function onClearKey() {
+       Confirms with window.confirm, removes the stored key AND the
+       consent flag from localStorage, then swaps back to key-entry.
+       Clearing consent here matches the user's intent: "wipe my data". */
+    function handleClearKey() {
       const ok = window.confirm('Remove the saved key from this browser? You will need to paste it again next time.');
       if (!ok) return;
       clearStoredKey();
-      setState({ apiKey: null, screen: 'key-entry' });
+      // Drop the consent flag too. Best effort, silent on failure.
+      try {
+        localStorage.removeItem(CONSENT_STORAGE_KEY);
+      } catch (err) {
+        // ignored
+      }
+      setState({ apiKey: null, lastIntake: null, consentGiven: false, screen: 'key-entry' });
     }
 
     /* Event handler: Replace key.
        Swaps to key-entry without confirmation. The stored key stays in
-       localStorage until the user clicks Save again with a new value. */
-    function onReplaceKey() {
+       localStorage until the user clicks Save again with a new value.
+       The consent flag is left alone here on purpose: replacing the key
+       does not change the user's understanding of what gets sent. */
+    function handleReplaceKey() {
       setState({ screen: 'key-entry' });
     }
+
+    // Aliases kept so Phase 1's event-listener wiring below still works.
+    const onClearKey = handleClearKey;
+    const onReplaceKey = handleReplaceKey;
 
     /* Wire up DOM events and bootstrap state on initial load. */
     document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('saveKeyBtn').addEventListener('click', onSaveKey);
-      document.getElementById('clearKeyBtn').addEventListener('click', onClearKey);
-      document.getElementById('replaceKeyBtn').addEventListener('click', onReplaceKey);
+      // Phase 1's #ready section still exists in the DOM (unreachable in
+      // normal Phase 2 flow) so its buttons are still wired up defensively.
+      document.getElementById('clearKeyBtn').addEventListener('click', handleClearKey);
+      document.getElementById('replaceKeyBtn').addEventListener('click', handleReplaceKey);
+
+      // Phase 2 Plan 01: wire up the intake screen's header strip buttons
+      // and form inputs. Same handlers as the Phase 1 ready-screen buttons.
+      const intakeReplaceBtn = document.getElementById('intakeReplaceKey');
+      const intakeClearBtn = document.getElementById('intakeClearKey');
+      if (intakeReplaceBtn) intakeReplaceBtn.addEventListener('click', handleReplaceKey);
+      if (intakeClearBtn) intakeClearBtn.addEventListener('click', handleClearKey);
+
+      // Re-validate the Generate button on every relevant input change.
+      ['permitType', 'callReason', 'situationText', 'consentCheckbox'].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('input', validateIntake);
+          el.addEventListener('change', validateIntake);
+        }
+      });
+
+      const generateBtn = document.getElementById('generateButton');
+      if (generateBtn) generateBtn.addEventListener('click', onGenerateClick);
+
+      // Mirror the consent flag from localStorage on load.
+      appState.consentGiven = loadConsent();
 
       const stored = loadStoredKey();
       if (stored) {
         appState.apiKey = stored;
-        appState.screen = 'ready';
+        // Phase 2: a saved key lands directly on intake, not 'ready'.
+        appState.screen = 'intake';
       }
       render();
     });
