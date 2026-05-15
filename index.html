@@ -1397,6 +1397,48 @@ Reply in JSON only. The calling application enforces the schema via the API's st
       }
     }
 
+    /* runGeneration: orchestrates the LLM round-trip end to end.
+       Reads appState.lastIntake and appState.apiKey (both set by the
+       Generate click handler BEFORE this runs). Swaps the screen to
+       'generating' immediately, awaits callAnthropic, then routes to
+       'result' or 'error'. Three outcome shapes from callAnthropic:
+         { ok: true, data: <object> }                  mock=1 success
+         { ok: true, data: null, rawText: '...' }      real success OR mock=broken
+         { ok: false, errorClass, status?, bodyText?, message? }  failure */
+    async function runGeneration() {
+      // Swap immediately so a double-click cannot fire a second request.
+      setState({ screen: 'generating', errorClass: null, errorDetail: null });
+
+      const result = await callAnthropic(appState.lastIntake, appState.apiKey);
+
+      if (!result.ok) {
+        setState({
+          screen: 'error',
+          errorClass: result.errorClass,
+          errorDetail: {
+            httpStatus: result.status,
+            bodyText: String(result.bodyText || '').slice(0, 2000),
+            message: result.message,
+          },
+        });
+        return;
+      }
+
+      // Success branch: either already-parsed (mock=1) or raw text to parse.
+      const inputToParse = result.data !== null ? result.data : result.rawText;
+      const parsed = parseAndValidateResponse(inputToParse);
+      if (!parsed.ok) {
+        setState({
+          screen: 'error',
+          errorClass: parsed.errorClass,
+          errorDetail: { message: parsed.message, bodyText: parsed.rawText },
+        });
+        return;
+      }
+
+      setState({ screen: 'result', cheatSheet: parsed.cheatSheet });
+    }
+
     /* ----------------------------------------------------------------------
        INTAKE FORM (Phase 2 Plan 01)
        The intake screen captures permit type, reason for calling, three
@@ -1458,10 +1500,15 @@ Reply in JSON only. The calling application enforces the schema via the API's st
         appState.consentGiven = true;
       }
 
+      // Snapshot the intake BEFORE firing the call. This survives every
+      // error path so "Try again" and "Back to intake" both work without
+      // wiping the user's typing.
       setState({ lastIntake: snapshot });
 
-      // Stub: Phase 2 Plan 02 replaces this body with the LLM round-trip.
-      console.warn('Plan 02 wires the LLM call here. Intake snapshot:', appState.lastIntake);
+      // Fire-and-forget: runGeneration owns the screen swap, the awaited
+      // fetch, and the route to 'result' or 'error'. Not awaited here so
+      // the click event resolves immediately.
+      runGeneration();
     }
 
     /* Wire up DOM events and bootstrap state on initial load. */
