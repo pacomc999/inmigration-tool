@@ -10,24 +10,24 @@ Scoped requirements for the v1.0 milestone of the Migrationsamt Zürich Call Hel
 
 ### API Key & Settings (KEY)
 
-- [ ] **KEY-01**: User can paste their own Anthropic API key into the app and have it persisted in browser localStorage only
-- [ ] **KEY-02**: User can clear their stored API key in one click
-- [ ] **KEY-03**: API key input uses `type="password"` and the key is masked after save
+- [x] **KEY-01**: User can paste their own Anthropic API key into the app and have it persisted in browser localStorage only
+- [x] **KEY-02**: User can clear their stored API key in one click
+- [x] **KEY-03**: API key input uses `type="password"` and the key is masked after save
 
 ### Situation Intake (INTAKE)
 
 - [ ] **INTAKE-01**: User selects their UI language from English, Spanish, or Portuguese
-- [ ] **INTAKE-02**: User selects their permit type from a structured list (L, B, C, Ci, G, N, F, S, or "I don't know"), never free text
-- [ ] **INTAKE-03**: User selects their reason for calling from a curated topic list (renewal, change of status, family reunification, work-permit change, address change, missing document, lost permit, status check, appointment booking, other)
-- [ ] **INTAKE-04**: User can enter optional structured reference data: case reference number, AHV number, appointment date if any
-- [ ] **INTAKE-05**: User can describe their situation in free text in their chosen language
+- [x] **INTAKE-02**: User selects their permit type from a structured list (L, B, C, Ci, G, N, F, S, or "I don't know"), never free text
+- [x] **INTAKE-03**: User selects their reason for calling from a curated topic list (renewal, change of status, family reunification, work-permit change, address change, missing document, lost permit, status check, appointment booking, other)
+- [x] **INTAKE-04**: User can enter optional structured reference data: case reference number, AHV number, appointment date if any
+- [x] **INTAKE-05**: User can describe their situation in free text in their chosen language
 
 ### Cheat Sheet Generation (LLM)
 
-- [ ] **LLM-01**: On submission, the app calls the chosen LLM provider with a system prompt that forbids generating contact details, forbids permit-eligibility advice, and forbids strategic legal advice
-- [ ] **LLM-02**: The LLM returns structured JSON matching the locked cheat sheet schema (Blocks B, C, E, F content)
-- [ ] **LLM-03**: The app shows a clear loading state with reassurance messages for the 10-20s generation window
-- [ ] **LLM-04**: The app handles 401, 429, 500, and JSON parse errors with user-friendly messages in the user's chosen language
+- [x] **LLM-01**: On submission, the app calls the chosen LLM provider with a system prompt that forbids generating contact details, forbids permit-eligibility advice, and forbids strategic legal advice
+- [x] **LLM-02**: The LLM returns structured JSON matching the locked cheat sheet schema (Blocks B, C, E, F content)
+- [x] **LLM-03**: The app shows a clear loading state with reassurance messages for the 10-20s generation window
+- [x] **LLM-04**: The app handles 401, 429, 500, and JSON parse errors with user-friendly messages in the user's chosen language
 
 ### Cheat Sheet Rendering (CHEAT)
 
@@ -43,9 +43,9 @@ Scoped requirements for the v1.0 milestone of the Migrationsamt Zürich Call Hel
 ### Trust & Safety (TRUST)
 
 - [ ] **TRUST-01**: A non-dismissable disclaimer is visible on every cheat sheet
-- [ ] **TRUST-02**: First-time users see a consent checkbox before the first generation, explaining what data goes to the LLM provider and what stays local
+- [x] **TRUST-02**: First-time users see a consent checkbox before the first generation, explaining what data goes to the LLM provider and what stays local
 - [ ] **TRUST-03**: A privacy page explains the no-backend, no-logging, BYO-key model in plain English
-- [ ] **TRUST-04**: The app never accesses the microphone, ever (lifetime guardrail, no code path requests `getUserMedia({ audio: true })`)
+- [x] **TRUST-04**: The app never accesses the microphone, ever (lifetime guardrail, no code path requests `getUserMedia({ audio: true })`)
 - [ ] **TRUST-05**: A first-visit onboarding screen explains how to get a free Gemini API key, with link
 
 ### Print & Mobile (PRINT)

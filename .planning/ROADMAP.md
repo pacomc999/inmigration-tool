@@ -25,8 +25,8 @@ Hardcoded blocks: A (contact + hours), D, G, H. LLM-generated blocks: B (custom 
 ## Phases
 
 - [x] **Phase 0: CORS and Provider Spike** - de-risk the load-bearing assumption that the browser can directly call Gemini and OpenAI from the deployed origin
-- [ ] **Phase 1: Skeleton, State, Key Handling, Static Constants** - HTML scaffold, appState + setState + render, BYO key flow, hardcoded Migrationsamt constants, strict CSP, Blocks A/D/G/H static content in place
-- [ ] **Phase 2: LLM Round-Trip in English** - structured intake form, prompt building, JSON-schema response, error handling, loading state, consent before first generation
+- [x] **Phase 1: Skeleton, State, Key Handling, Static Constants** - HTML scaffold, appState + setState + render, BYO key flow, hardcoded Migrationsamt constants, strict CSP, Blocks A/D/G/H static content in place
+- [x] **Phase 2: LLM Round-Trip in English** - structured intake form, prompt building, JSON-schema response, error handling, loading state, consent before first generation
 - [ ] **Phase 3: Cheat Sheet Rendering, Print, Mobile, Onboarding, Privacy** - render Blocks A through H, two-column DE/native, print stylesheet, phone layout, onboarding, privacy page, non-dismissable disclaimer
 - [ ] **Phase 4: Multilingual Intake and Glosses (ES + PT)** - UI language switcher live, ES and PT prompt templates, ES and PT gloss columns
 - [ ] **Phase 5: First Real-User Pilot and Prompt Tuning** - first close contact uses the tool for a real call, debrief feeds back into phrasebook and prompts
@@ -60,7 +60,7 @@ Note: the Phase 0 Goal and Success Criteria above predate the discussion capture
   5. A strict CSP meta tag is in place, no third-party scripts load at runtime, and a `git grep` for `getUserMedia` returns zero matches (lifetime mic guardrail)
 **Plans**: 2 plans
 - [x] 01-01-PLAN.md - Skeleton, CSP, appState/setState/render, BYO key flow (paste/save/mask/clear/replace), mic guardrail script, README
-- [ ] 01-02-PLAN.md - Migrationsamt constants (Block A facts, Block D panic phrases, Hochdeutsch request, Block H footer + escalations), final TRUST-04 grep, REQUIREMENTS.md + ROADMAP.md housekeeping
+- [x] 01-02-PLAN.md - Migrationsamt constants (Block A facts, Block D panic phrases, Hochdeutsch request, Block H footer + escalations), final TRUST-04 grep, REQUIREMENTS.md + ROADMAP.md housekeeping
 **UI hint**: yes
 
 ### Phase 2: LLM Round-Trip in English
@@ -74,8 +74,8 @@ Note: the Phase 0 Goal and Success Criteria above predate the discussion capture
   4. On success, the parsed JSON returned by the LLM matches the locked schema for Blocks B, C, E, and F, and is viewable (even as raw structured output) on a result screen
   5. On 401, 429, 500, or JSON parse failure, the user sees a friendly English error message with a "Try again" and "Back to intake" path; the system prompt forbids generating contact details, permit-eligibility advice, and strategic legal advice
 **Plans**: 2 plans
-- [ ] 02-01-PLAN.md - Intake form (INTAKE-02..05), consent block (TRUST-02), state-machine extension and inline key header strip
-- [ ] 02-02-PLAN.md - LLM round-trip core (LLM-01..04) with output_config.format JSON schema, generating/result/error screens, ?mock=1 and ?mock=broken fixtures, README, human-verify checkpoint
+- [x] 02-01-PLAN.md - Intake form (INTAKE-02..05), consent block (TRUST-02), state-machine extension and inline key header strip
+- [x] 02-02-PLAN.md - LLM round-trip core (LLM-01..04) with output_config.format JSON schema, generating/result/error screens, ?mock=1 and ?mock=broken fixtures, README, human-verify checkpoint
 **UI hint**: yes
 
 ### Phase 3: Cheat Sheet Rendering, Print, Mobile, Onboarding, Privacy
@@ -88,9 +88,7 @@ Note: the Phase 0 Goal and Success Criteria above predate the discussion capture
   3. Hitting Ctrl+P or the in-app Print button produces a clean A4 layout, one to two pages, with form controls and buttons hidden, and no section is split across a page break
   4. The cheat sheet renders as a readable single-column layout on a real iPhone Safari window (tested on device, not just devtools emulation)
   5. A first-time visitor without a key lands on an onboarding screen explaining the BYO-key model, with a link to obtain a free Gemini key, and can read a dedicated privacy page explaining the no-backend, no-logging, BYO-key posture in plain English
-**Plans**: 2 plans
-- [ ] 02-01-PLAN.md - Intake form (INTAKE-02..05), consent block (TRUST-02), state-machine extension and inline key header strip
-- [ ] 02-02-PLAN.md - LLM round-trip core (LLM-01..04) with output_config.format JSON schema, generating/result/error screens, ?mock=1 and ?mock=broken fixtures, README, human-verify checkpoint
+**Plans**: TBD
 **UI hint**: yes
 
 ### Phase 4: Multilingual Intake and Glosses (ES + PT)
@@ -120,8 +118,8 @@ Note: the Phase 0 Goal and Success Criteria above predate the discussion capture
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0. CORS and Provider Spike | 1/1 | Complete | 2026-05-14 |
-| 1. Skeleton, State, Key Handling, Static Constants | 0/0 | Not started | - |
-| 2. LLM Round-Trip in English | 0/0 | Not started | - |
+| 1. Skeleton, State, Key Handling, Static Constants | 2/2 | Complete | 2026-05-14 |
+| 2. LLM Round-Trip in English | 2/2 | Complete | 2026-05-15 |
 | 3. Cheat Sheet Rendering, Print, Mobile, Onboarding, Privacy | 0/0 | Not started | - |
 | 4. Multilingual Intake and Glosses (ES + PT) | 0/0 | Not started | - |
 | 5. First Real-User Pilot and Prompt Tuning | 0/0 | Not started | - |

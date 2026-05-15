@@ -6,9 +6,9 @@ status: unknown
 last_updated: "2026-05-14T14:14:20.250Z"
 progress:
   total_phases: 6
-  completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
+  completed_phases: 3
+  total_plans: 5
+  completed_plans: 5
   percent: 100
 ---
 
@@ -26,15 +26,15 @@ Single source of truth for project memory. Updated at every transition.
 ## Current Position
 
 - **Milestone**: v1
-- **Phase**: 2 - LLM Round-Trip in English (ready to plan)
+- **Phase**: 3 - Cheat Sheet Rendering, Print, Mobile, Onboarding, Privacy (ready to plan)
 - **Plan**: None yet
-- **Status**: Phase 1 complete; ready for `/gsd-plan-phase 2`
-- **Progress**: [■■□□□□] 2 of 6 phases complete
+- **Status**: Phase 2 complete; ready for `/gsd-plan-phase 3`
+- **Progress**: [■■■□□□] 3 of 6 phases complete
 
 ## Performance Metrics
 
-- **Phases complete**: 2 of 6
-- **Requirements satisfied**: 4 of 29 v1 requirements (SPIKE-01, KEY-01, KEY-02, KEY-03, TRUST-04). KEY-04 dropped (provider toggle obsoleted by Phase 0 outcome).
+- **Phases complete**: 3 of 6
+- **Requirements satisfied**: 14 of 29 v1 requirements (SPIKE-01, KEY-01, KEY-02, KEY-03, INTAKE-02, INTAKE-03, INTAKE-04, INTAKE-05, LLM-01, LLM-02, LLM-03, LLM-04, TRUST-02, TRUST-04). KEY-04 dropped (provider toggle obsoleted by Phase 0 outcome).
 - **First-real-user pilot**: not yet attempted
 - **CORS spike**: PASS (Anthropic direct browser fetch, desktop Chrome, 2026-05-14)
 
@@ -58,10 +58,13 @@ Single source of truth for project memory. Updated at every transition.
 
 ### Open Todos
 
-- Phase 2 planning: use current Anthropic model id (Phase 0 spike used `claude-haiku-4-5`; `claude-3-5-haiku-latest` is retired)
-- TRUST-05 onboarding copy still references a "free Gemini API key" in REQUIREMENTS.md; update to Anthropic during Phase 3 onboarding work
+- Phase 3: build the cheat-sheet renderer against the LOCKED `CHEAT_SHEET_SCHEMA` in `index.html`. Use `?mock=1` (MOCK_CHEAT_SHEET fixture) to iterate on print layout and mobile view without burning API tokens.
+- Phase 3: amend TRUST-05 onboarding copy (still references "free Gemini API key" in REQUIREMENTS.md; update to Anthropic).
+- L-08 (new locked): Anthropic structured-output JSON schema does NOT support `minItems > 1` or `maxItems`. Future schema additions must put count enforcement in SYSTEM_PROMPT and `description` prose.
+- L-09 (new locked): Five user-facing error classes are canonical: `auth`, `rate-limit`, `server`, `bad-request`, `parse`, `network`.
 - ASSUMPTION A1 (Phase 3): native-speaker review of Block D panic phrases before CHEAT-04 renders them (inline comment in index.html marks the spot)
 - ASSUMPTION A2 (Phase 5): re-verify 24 Dec 2026 Migrationsamt schedule against zh.ch before the pilot call (inline comment in index.html marks the spot)
+- Phase 5: SYSTEM_PROMPT tuning based on real pilot debrief. Current prompt verified only against one-shot Francisco test; the pilot will reveal what officers actually ask first.
 
 ### Active Blockers
 
@@ -79,8 +82,8 @@ None.
 
 ## Session Continuity
 
-- **Last session**: 2026-05-14, Phase 1 executed (v1 skeleton + CSP + key handling + Migrationsamt constants + REQUIREMENTS/ROADMAP housekeeping)
-- **Next action**: Run `/gsd-plan-phase 2` to plan the LLM Round-Trip in English (intake form, prompt building, JSON schema response, consent, loading state, error handling)
+- **Last session**: 2026-05-15, Phase 2 executed and human-verified (intake form, locked SYSTEM_PROMPT and CHEAT_SHEET_SCHEMA, real Anthropic call returning sensible German, five-class error UI, mock fixtures, README updated). Schema-fix iteration at the human-verify gate caught the unsupported `minItems` constraint before Phase 3 plans against it.
+- **Next action**: Run `/gsd-plan-phase 3` to plan Cheat Sheet Rendering, Print, Mobile, Onboarding, Privacy.
 - **Files of record**: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/ROADMAP.md`, `.planning/research/SUMMARY.md`, `.planning/phases/00-cors-and-provider-spike/00-CONTEXT.md`
 
 ---
