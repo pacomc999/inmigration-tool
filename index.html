@@ -917,6 +917,259 @@ Reply in JSON only. The calling application enforces the schema via the API's st
     const onReplaceKey = handleReplaceKey;
 
     /* ----------------------------------------------------------------------
+       LLM ROUND-TRIP HELPERS (Phase 2 Plan 02)
+       Short, single-purpose helpers that own the Anthropic call and the
+       parse/validate step. The API key is passed as a function argument
+       and is NEVER logged. The request body is NEVER logged either: it
+       contains the user's free-text situation and is potentially sensitive.
+       All response strings are handled as untrusted text and only ever
+       written to the DOM via textContent (Phase 3 rendering follows the
+       same rule).
+
+       If output_config.format ever stops working, the documented fallback
+       is tool-use forced-call. See 02-RESEARCH.md Section 2 Option B.
+       ---------------------------------------------------------------------- */
+
+    /* stripFences: defensive cleanup before JSON.parse. Even with the
+       structured-output feature, an occasional response may arrive wrapped
+       in a markdown code fence. Trim once, peel the fence if present, trim
+       again. Three lines, no external dependencies. */
+    function stripFences(text) {
+      let t = String(text).trim();
+      if (t.startsWith('```json')) t = t.slice(7);
+      else if (t.startsWith('```')) t = t.slice(3);
+      if (t.endsWith('```')) t = t.slice(0, -3);
+      return t.trim();
+    }
+
+    /* buildUserMessage: composes a plain-English description of the intake
+       to send as the user turn. Deterministic, no HTML, no markdown. Each
+       field is coerced to a string defensively. Optional fields fall back
+       to "none provided" so the prompt structure stays stable. */
+    function buildUserMessage(intake) {
+      const safe = function (v) {
+        const s = String(v == null ? '' : v).trim();
+        return s.length > 0 ? s : 'none provided';
+      };
+      return (
+        'My permit type is: ' + safe(intake.permit) + '.\n' +
+        'My reason for calling: ' + safe(intake.reason) + '.\n' +
+        'Case reference number: ' + safe(intake.caseRef) + '.\n' +
+        'AHV number: ' + safe(intake.ahv) + '.\n' +
+        'Appointment date: ' + safe(intake.appointmentDate) + '.\n' +
+        'My situation:\n' +
+        safe(intake.situation)
+      );
+    }
+
+    /* buildRequestBody: shapes the Anthropic Messages request body around
+       the locked SYSTEM_PROMPT and CHEAT_SHEET_SCHEMA. Uses Option A from
+       02-RESEARCH.md Section 2: output_config.format with json_schema. */
+    function buildRequestBody(intake) {
+      return {
+        model: ANTHROPIC_API.model,
+        max_tokens: ANTHROPIC_API.maxTokens,
+        temperature: ANTHROPIC_API.temperature,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: buildUserMessage(intake) }],
+        output_config: {
+          format: {
+            type: 'json_schema',
+            schema: CHEAT_SHEET_SCHEMA,
+          },
+        },
+      };
+    }
+
+    /* callAnthropic: runs the network call and returns a normalised result.
+       Three possible shapes:
+         { ok: true, data: <fixture object> }                 (mock=1)
+         { ok: true, data: null, rawText: '<json string>' }   (real success or mock=broken)
+         { ok: false, errorClass, status?, bodyText?, message? } (failure)
+       The API key is used only inside the fetch headers and is never logged. */
+    async function callAnthropic(intake, apiKey) {
+      // Mock-flag branch: short-circuit before the real network call so dev
+      // iteration on UI does not burn API tokens.
+      const mockParam = new URLSearchParams(window.location.search).get('mock');
+      if (mockParam === '1') {
+        // Simulate the wait so the loading screen is observable.
+        await new Promise(function (r) { setTimeout(r, 800); });
+        return { ok: true, data: MOCK_CHEAT_SHEET };
+      }
+      if (mockParam === 'broken') {
+        await new Promise(function (r) { setTimeout(r, 400); });
+        // Hand a deliberately malformed JSON string to the parser, like a
+        // real but corrupt response would. The parse-error branch handles it.
+        return { ok: true, data: null, rawText: MOCK_CHEAT_SHEET_BROKEN, mockBroken: true };
+      }
+
+      // Real call. Wrap fetch in try/catch so a network drop maps to the
+      // 'network' error class instead of an uncaught promise rejection.
+      let response;
+      try {
+        response = await fetch(ANTHROPIC_API.endpoint, {
+          method: 'POST',
+          headers: {
+            'x-api-key': apiKey,
+            'anthropic-version': ANTHROPIC_API.apiVersion,
+            'anthropic-dangerous-direct-browser-access': 'true',
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify(buildRequestBody(intake)),
+        });
+      } catch (err) {
+        return {
+          ok: false,
+          errorClass: 'network',
+          message: err && err.message ? err.message : String(err),
+        };
+      }
+
+      // HTTP status mapping per 02-RESEARCH.md Section 7.
+      if (!response.ok) {
+        let bodyText = '';
+        try { bodyText = await response.text(); } catch (e) { bodyText = ''; }
+        let errorClass = 'server';
+        if (response.status === 401) errorClass = 'auth';
+        else if (response.status === 429) errorClass = 'rate-limit';
+        // Dev-friendly breadcrumb: status only, NEVER the key or the body.
+        console.warn('LLM call failed: HTTP', response.status);
+        return {
+          ok: false,
+          errorClass: errorClass,
+          status: response.status,
+          bodyText: bodyText,
+        };
+      }
+
+      // 2xx: extract envelope.content[0].text. The envelope itself is JSON.
+      let envelope;
+      try {
+        envelope = await response.json();
+      } catch (err) {
+        return {
+          ok: false,
+          errorClass: 'parse',
+          message: 'Could not parse the Anthropic envelope JSON.',
+        };
+      }
+      if (!envelope || !Array.isArray(envelope.content) || envelope.content.length === 0 ||
+          envelope.content[0].type !== 'text' || typeof envelope.content[0].text !== 'string') {
+        return {
+          ok: false,
+          errorClass: 'parse',
+          message: 'Anthropic response envelope did not contain a text content block.',
+        };
+      }
+      return { ok: true, data: null, rawText: envelope.content[0].text };
+    }
+
+    /* parseAndValidateResponse: accepts either an already-parsed object
+       (the mock=1 fixture) or a raw JSON string (real responses + mock=broken).
+       Validates the shape shallowly against the schema's required fields.
+       Returns { ok: true, cheatSheet } on success, or
+       { ok: false, errorClass: 'parse', message, rawText } on failure. */
+    function parseAndValidateResponse(input) {
+      let parsed;
+      if (typeof input === 'object' && input !== null) {
+        // Mock fixture path: already a JS object.
+        parsed = input;
+      } else {
+        try {
+          parsed = JSON.parse(stripFences(input));
+        } catch (err) {
+          return {
+            ok: false,
+            errorClass: 'parse',
+            message: err && err.message ? err.message : 'JSON.parse failed.',
+            rawText: typeof input === 'string' ? input.slice(0, 2000) : '',
+          };
+        }
+      }
+
+      // Shallow shape validation. The server-side schema enforcement is the
+      // real guarantee; this is a defence-in-depth check for hand-written
+      // fixtures and any future drift in output_config.format.
+      const fail = function (reason) {
+        return {
+          ok: false,
+          errorClass: 'parse',
+          message: reason,
+          rawText: typeof input === 'string'
+            ? input.slice(0, 2000)
+            : JSON.stringify(input).slice(0, 2000),
+        };
+      };
+
+      if (!parsed || typeof parsed !== 'object') {
+        return fail('response did not match the expected schema');
+      }
+      if (!('blockB' in parsed) || !('blockC' in parsed) ||
+          !('blockE' in parsed) || !('blockF' in parsed)) {
+        return fail('response did not match the expected schema');
+      }
+      const b = parsed.blockB;
+      if (!b || typeof b !== 'object' ||
+          typeof b.userGoalSentence !== 'string' ||
+          typeof b.userGoalGloss !== 'string' ||
+          !Array.isArray(b.openingScript)) {
+        return fail('response did not match the expected schema');
+      }
+      if (!Array.isArray(parsed.blockC) || !Array.isArray(parsed.blockE) ||
+          !Array.isArray(parsed.blockF)) {
+        return fail('response did not match the expected schema');
+      }
+      for (let i = 0; i < parsed.blockF.length; i++) {
+        if (typeof parsed.blockF[i] !== 'string') {
+          return fail('response did not match the expected schema');
+        }
+      }
+      return { ok: true, cheatSheet: parsed };
+    }
+
+    /* Loading-message cycle. Five reassurance strings, cycled every 4s
+       while the LLM call is in flight. Sticks on message 5 if generation
+       exceeds 20s. Exposed via cycleLoadingMessages (start) and
+       stopLoadingMessages (stop), used by render(). */
+    const LOADING_MESSAGES = [
+      'Building your cheat sheet now. This usually takes 10 to 20 seconds.',
+      'Translating your situation into formal German.',
+      'Picking the questions the officer is most likely to ask.',
+      'Compiling vocabulary and your prep checklist.',
+      'Almost there. Final pass on the German.',
+    ];
+    let loadingTimerId = null;
+    let loadingMessageIndex = 0;
+
+    function cycleLoadingMessages() {
+      const el = document.getElementById('loadingMessage');
+      if (!el) return;
+      // Reset to the first message every time we start a fresh cycle.
+      loadingMessageIndex = 0;
+      el.textContent = LOADING_MESSAGES[0];
+      // Defensive: if a previous interval is still alive, drop it first.
+      if (loadingTimerId !== null) {
+        clearInterval(loadingTimerId);
+        loadingTimerId = null;
+      }
+      loadingTimerId = setInterval(function () {
+        // Advance the index but clamp at the last message so it sticks.
+        if (loadingMessageIndex < LOADING_MESSAGES.length - 1) {
+          loadingMessageIndex = loadingMessageIndex + 1;
+        }
+        const node = document.getElementById('loadingMessage');
+        if (node) node.textContent = LOADING_MESSAGES[loadingMessageIndex];
+      }, 4000);
+    }
+
+    function stopLoadingMessages() {
+      if (loadingTimerId !== null) {
+        clearInterval(loadingTimerId);
+        loadingTimerId = null;
+      }
+    }
+
+    /* ----------------------------------------------------------------------
        INTAKE FORM (Phase 2 Plan 01)
        The intake screen captures permit type, reason for calling, three
        optional reference fields, and a free-text situation. A consent
