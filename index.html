@@ -291,6 +291,59 @@
 
     </section>
 
+    <!-- Phase 2 Plan 02: generating screen. Cycling reassurance messages
+         while the LLM call is in flight. -->
+    <section id="generating" hidden>
+      <h2>Generating your cheat sheet</h2>
+      <p id="loadingMessage" role="status" aria-live="polite"></p>
+      <!-- Indeterminate progress bar: no value/max attributes by design. -->
+      <progress></progress>
+      <p class="helper">This usually takes 10 to 20 seconds. Please keep this tab open.</p>
+    </section>
+
+    <!-- Phase 2 Plan 02: result screen. Throwaway raw-preview layout.
+         Phase 3 deletes most of this and replaces with the printable cheat sheet. -->
+    <section id="result" hidden>
+      <h2>Your cheat sheet (Phase 2 raw preview)</h2>
+      <p class="helper">This is the raw structured output. In a later step we will format it as a printable cheat sheet. For now, look through it to check the German makes sense and the schema is right.</p>
+
+      <h3>Block B - Opening script</h3>
+      <div id="resultBlockB"></div>
+
+      <h3>Block C - Likely officer questions</h3>
+      <div id="resultBlockC"></div>
+
+      <h3>Block E - Vocabulary</h3>
+      <div id="resultBlockE"></div>
+
+      <h3>Block F - Prep checklist</h3>
+      <div id="resultBlockF"></div>
+
+      <details>
+        <summary>Raw JSON for debugging</summary>
+        <pre id="resultRawJson"></pre>
+      </details>
+
+      <button id="newCheatSheetButton" type="button">New cheat sheet</button>
+      <button id="backToIntakeFromResultButton" type="button">Back to intake</button>
+    </section>
+
+    <!-- Phase 2 Plan 02: error panel. One section, copy switched by appState.errorClass. -->
+    <section id="errorPanel" hidden>
+      <h2 id="errorHeading"></h2>
+      <p id="errorBody"></p>
+
+      <!-- The Update key button is only shown on the auth error class. -->
+      <button id="errorUpdateKeyButton" type="button" hidden>Update key</button>
+      <button id="errorTryAgainButton" type="button">Try again</button>
+      <button id="errorBackToIntakeButton" type="button">Back to intake</button>
+
+      <details>
+        <summary>Show technical details</summary>
+        <pre id="errorDetailPre"></pre>
+      </details>
+    </section>
+
   </main>
 
   <footer>
@@ -772,20 +825,159 @@ Reply in JSON only. The calling application enforces the schema via the API's st
       render();
     }
 
-    /* Placeholder for the three screens Plan 02 will own. Hides every
-       known screen section so the UI does not show stale content, and
-       leaves a console.warn breadcrumb so Plan 02's executor can find it. */
-    function renderUnimplemented(screen) {
-      const sections = ['keyEntry', 'ready', 'intake'];
+    /* hideAllSections: defensive helper used by render() at every transition.
+       Hides every known top-level <section> so we never leave stale UI
+       behind when swapping screens. */
+    function hideAllSections() {
+      const sections = ['keyEntry', 'ready', 'intake', 'generating', 'result', 'errorPanel'];
       sections.forEach(function (id) {
         const el = document.getElementById(id);
         if (el) el.hidden = true;
       });
-      console.warn('render(): screen "' + screen + '" is not implemented yet. Plan 02 wires it up.');
+    }
+
+    /* Error copy table (verbatim from 02-RESEARCH.md Section 7, with the
+       brand name replaced by "the AI service" per Francisco's locked
+       decision). Each entry is a { heading, body } pair the error branch
+       of render() writes via textContent. */
+    const ERROR_COPY = {
+      'auth': {
+        heading: 'Your API key did not work',
+        body: 'The AI service rejected your saved API key. It might be wrong, expired, or revoked. You can paste a new key and try again, or go back to the intake.',
+      },
+      'rate-limit': {
+        heading: 'The AI service is rate-limiting your account right now',
+        body: 'Your account has hit a temporary rate limit on the AI service. Wait a minute or two and try again, or change your intake and come back.',
+      },
+      'server': {
+        heading: 'The AI service is having a problem',
+        body: 'The AI service returned an error from their side. This usually clears up by itself within a few minutes. Try again, or come back later.',
+      },
+      'parse': {
+        heading: 'Something went wrong reading the response',
+        body: 'The AI service answered, but the response did not match the expected shape. This is rare. Trying again usually fixes it. If it keeps happening, this is a bug worth reporting.',
+      },
+      'network': {
+        heading: 'Could not reach the AI service',
+        body: 'Your browser could not connect to the AI service. Check your internet connection and try again.',
+      },
+    };
+
+    /* Render helpers for the four result blocks. Each one clears its
+       container and rebuilds the DOM via document.createElement +
+       textContent. Never innerHTML: the LLM output is untrusted text by
+       the project's own threat model. */
+    function renderBlockB(block) {
+      const root = document.getElementById('resultBlockB');
+      if (!root || !block) return;
+      // Clear any previous render.
+      while (root.firstChild) root.removeChild(root.firstChild);
+
+      const goalDe = document.createElement('p');
+      goalDe.textContent = 'Goal (DE): ' + String(block.userGoalSentence || '');
+      root.appendChild(goalDe);
+
+      const goalEn = document.createElement('p');
+      goalEn.textContent = 'Goal (EN): ' + String(block.userGoalGloss || '');
+      root.appendChild(goalEn);
+
+      const ol = document.createElement('ol');
+      const items = Array.isArray(block.openingScript) ? block.openingScript : [];
+      items.forEach(function (item) {
+        const li = document.createElement('li');
+        li.textContent = 'DE: ' + String(item.germanLine || '') +
+                         ' / EN: ' + String(item.englishGloss || '');
+        ol.appendChild(li);
+      });
+      root.appendChild(ol);
+    }
+
+    function renderBlockC(items) {
+      const root = document.getElementById('resultBlockC');
+      if (!root) return;
+      while (root.firstChild) root.removeChild(root.firstChild);
+
+      const ol = document.createElement('ol');
+      const arr = Array.isArray(items) ? items : [];
+      arr.forEach(function (entry) {
+        const li = document.createElement('li');
+
+        const q = document.createElement('p');
+        q.textContent = 'Q: ' + String(entry.germanQuestion || '') +
+                        ' / ' + String(entry.englishGloss || '');
+        li.appendChild(q);
+
+        const yes = document.createElement('p');
+        yes.textContent = 'Yes: ' + String(entry.affirmativeGerman || '') +
+                          ' / ' + String(entry.affirmativeEnglish || '');
+        li.appendChild(yes);
+
+        const no = document.createElement('p');
+        no.textContent = 'No: ' + String(entry.negativeGerman || '') +
+                         ' / ' + String(entry.negativeEnglish || '');
+        li.appendChild(no);
+
+        ol.appendChild(li);
+      });
+      root.appendChild(ol);
+    }
+
+    function renderBlockE(items) {
+      const root = document.getElementById('resultBlockE');
+      if (!root) return;
+      while (root.firstChild) root.removeChild(root.firstChild);
+
+      const ul = document.createElement('ul');
+      const arr = Array.isArray(items) ? items : [];
+      arr.forEach(function (entry) {
+        const li = document.createElement('li');
+        // Plain ASCII hyphen between word and translation, NOT em or en dash.
+        li.textContent = String(entry.article || '') + ' ' +
+                         String(entry.germanWord || '') + ' - ' +
+                         String(entry.englishTranslation || '');
+        ul.appendChild(li);
+      });
+      root.appendChild(ul);
+    }
+
+    function renderBlockF(items) {
+      const root = document.getElementById('resultBlockF');
+      if (!root) return;
+      while (root.firstChild) root.removeChild(root.firstChild);
+
+      const ul = document.createElement('ul');
+      const arr = Array.isArray(items) ? items : [];
+      arr.forEach(function (entry) {
+        const li = document.createElement('li');
+        li.textContent = String(entry || '');
+        ul.appendChild(li);
+      });
+      root.appendChild(ul);
+    }
+
+    /* intakeFromState: repopulates the intake form inputs from
+       appState.lastIntake when non-null. Phase 1 inlined this logic in
+       render(); Plan 02 extracts it so the post-error recovery path is
+       observable. Safe to call when lastIntake is null (it does nothing). */
+    function intakeFromState() {
+      if (!appState.lastIntake) return;
+      const li = appState.lastIntake;
+      const setVal = function (id, v) {
+        const el = document.getElementById(id);
+        if (el && typeof v === 'string') el.value = v;
+      };
+      setVal('permitType', li.permit);
+      setVal('callReason', li.reason);
+      setVal('caseRef', li.caseRef);
+      setVal('ahv', li.ahv);
+      setVal('appointmentDate', li.appointmentDate);
+      setVal('situationText', li.situation);
     }
 
     /* render reads appState and toggles section visibility. Idempotent.
-       Every dynamic DOM write uses textContent, never innerHTML. */
+       Every dynamic DOM write uses textContent, never innerHTML. Any
+       transition into a non-'generating' screen calls stopLoadingMessages
+       so the interval does not leak. */
     function render() {
       // Defensive coerce step: 'ready' is no longer a reachable screen in
       // Phase 2, but if anything sneaks it in we route to 'intake' instead.
@@ -794,24 +986,24 @@ Reply in JSON only. The calling application enforces the schema via the API's st
         return;
       }
 
-      const keyEntryEl = document.getElementById('keyEntry');
-      const readyEl = document.getElementById('ready');
-      const intakeEl = document.getElementById('intake');
-      const errorEl = document.getElementById('keyEntryError');
-
       switch (appState.screen) {
         case 'key-entry': {
-          keyEntryEl.hidden = false;
-          if (readyEl) readyEl.hidden = true;
-          if (intakeEl) intakeEl.hidden = true;
+          stopLoadingMessages();
+          hideAllSections();
+          const keyEntryEl = document.getElementById('keyEntry');
+          if (keyEntryEl) keyEntryEl.hidden = false;
           // Clear any stale error when returning to the key-entry screen.
-          errorEl.hidden = true;
-          errorEl.textContent = '';
+          const errorEl = document.getElementById('keyEntryError');
+          if (errorEl) {
+            errorEl.hidden = true;
+            errorEl.textContent = '';
+          }
           return;
         }
         case 'intake': {
-          keyEntryEl.hidden = true;
-          if (readyEl) readyEl.hidden = true;
+          stopLoadingMessages();
+          hideAllSections();
+          const intakeEl = document.getElementById('intake');
           if (intakeEl) intakeEl.hidden = false;
 
           // Populate the masked-key header strip via textContent.
@@ -822,36 +1014,72 @@ Reply in JSON only. The calling application enforces the schema via the API's st
           const consentEl = document.getElementById('intakeConsent');
           if (consentEl) consentEl.hidden = appState.consentGiven === true;
 
-          // Repopulate form fields from lastIntake if we have one.
-          // Plan 02 routes users back to intake after errors with lastIntake
-          // populated. On first arrival it is null and we leave fields alone.
-          if (appState.lastIntake) {
-            const li = appState.lastIntake;
-            const setVal = function (id, v) {
-              const el = document.getElementById(id);
-              if (el && typeof v === 'string') el.value = v;
-            };
-            setVal('permitType', li.permit);
-            setVal('callReason', li.reason);
-            setVal('caseRef', li.caseRef);
-            setVal('ahv', li.ahv);
-            setVal('appointmentDate', li.appointmentDate);
-            setVal('situationText', li.situation);
-          }
+          // Plan 02: extracted to intakeFromState so the recovery-from-error
+          // path is observable. Safe when lastIntake is null.
+          intakeFromState();
 
           // Make sure the Generate button starts in the right state.
           validateIntake();
           return;
         }
-        case 'generating':
-        case 'result':
+        case 'generating': {
+          // Do NOT stop loading messages here: this screen owns them.
+          hideAllSections();
+          const genEl = document.getElementById('generating');
+          if (genEl) genEl.hidden = false;
+          cycleLoadingMessages();
+          return;
+        }
+        case 'result': {
+          stopLoadingMessages();
+          hideAllSections();
+          const resultEl = document.getElementById('result');
+          if (resultEl) resultEl.hidden = false;
+
+          // Populate the four blocks from appState.cheatSheet.
+          const cs = appState.cheatSheet || {};
+          renderBlockB(cs.blockB);
+          renderBlockC(cs.blockC);
+          renderBlockE(cs.blockE);
+          renderBlockF(cs.blockF);
+
+          // Raw JSON dump via textContent: never innerHTML.
+          const pre = document.getElementById('resultRawJson');
+          if (pre) pre.textContent = JSON.stringify(cs, null, 2);
+          return;
+        }
         case 'error': {
-          renderUnimplemented(appState.screen);
+          stopLoadingMessages();
+          hideAllSections();
+          const panel = document.getElementById('errorPanel');
+          if (panel) panel.hidden = false;
+
+          // Map errorClass to copy; default to the parse-class copy if
+          // somehow the value is unknown so the user still sees something.
+          const cls = appState.errorClass || 'parse';
+          const copy = ERROR_COPY[cls] || ERROR_COPY['parse'];
+
+          const headingEl = document.getElementById('errorHeading');
+          if (headingEl) headingEl.textContent = copy.heading;
+          const bodyEl = document.getElementById('errorBody');
+          if (bodyEl) bodyEl.textContent = copy.body;
+
+          // Update key button only on the auth class.
+          const updateBtn = document.getElementById('errorUpdateKeyButton');
+          if (updateBtn) updateBtn.hidden = cls !== 'auth';
+
+          // Technical details: pretty-print whatever appState.errorDetail holds.
+          const detailPre = document.getElementById('errorDetailPre');
+          if (detailPre) {
+            detailPre.textContent = JSON.stringify(appState.errorDetail || {}, null, 2);
+          }
           return;
         }
         default: {
           // Unknown screen value: hide everything to avoid stale UI.
-          renderUnimplemented(appState.screen);
+          stopLoadingMessages();
+          hideAllSections();
+          console.warn('render(): unknown screen value', appState.screen);
           return;
         }
       }
@@ -1262,6 +1490,44 @@ Reply in JSON only. The calling application enforces the schema via the API's st
 
       const generateBtn = document.getElementById('generateButton');
       if (generateBtn) generateBtn.addEventListener('click', onGenerateClick);
+
+      // Phase 2 Plan 02: wire the five new buttons on the result and
+      // error screens. Result-screen buttons reset or preserve lastIntake;
+      // error-screen buttons either retry, go back, or jump to key entry.
+      const newSheetBtn = document.getElementById('newCheatSheetButton');
+      if (newSheetBtn) newSheetBtn.addEventListener('click', function () {
+        // Clear inputs explicitly so the form is empty when we return.
+        ['permitType', 'callReason', 'caseRef', 'ahv',
+         'appointmentDate', 'situationText'].forEach(function (id) {
+          const el = document.getElementById(id);
+          if (el) el.value = '';
+        });
+        setState({ cheatSheet: null, lastIntake: null, screen: 'intake' });
+      });
+
+      const backFromResultBtn = document.getElementById('backToIntakeFromResultButton');
+      if (backFromResultBtn) backFromResultBtn.addEventListener('click', function () {
+        // Keep lastIntake so intakeFromState() repopulates the form.
+        setState({ screen: 'intake' });
+      });
+
+      const tryAgainBtn = document.getElementById('errorTryAgainButton');
+      if (tryAgainBtn) tryAgainBtn.addEventListener('click', function () {
+        // runGeneration is defined in the Task 4 block below. Resolved at
+        // click time so the forward reference is fine.
+        runGeneration();
+      });
+
+      const errorBackBtn = document.getElementById('errorBackToIntakeButton');
+      if (errorBackBtn) errorBackBtn.addEventListener('click', function () {
+        setState({ screen: 'intake' });
+      });
+
+      const errorUpdateKeyBtn = document.getElementById('errorUpdateKeyButton');
+      if (errorUpdateKeyBtn) errorUpdateKeyBtn.addEventListener('click', function () {
+        // appState.lastIntake and appState.consentGiven are preserved.
+        setState({ screen: 'key-entry' });
+      });
 
       // Mirror the consent flag from localStorage on load.
       appState.consentGiven = loadConsent();
