@@ -27,7 +27,7 @@ Hardcoded blocks: A (contact + hours), D, G, H. LLM-generated blocks: B (custom 
 - [x] **Phase 0: CORS and Provider Spike** - de-risk the load-bearing assumption that the browser can directly call Gemini and OpenAI from the deployed origin
 - [x] **Phase 1: Skeleton, State, Key Handling, Static Constants** - HTML scaffold, appState + setState + render, BYO key flow, hardcoded Migrationsamt constants, strict CSP, Blocks A/D/G/H static content in place
 - [x] **Phase 2: LLM Round-Trip in English** - structured intake form, prompt building, JSON-schema response, error handling, loading state, consent before first generation
-- [ ] **Phase 3: Cheat Sheet Rendering, Print, Mobile, Onboarding, Privacy** - render Blocks A through H, two-column DE/native, print stylesheet, phone layout, onboarding, privacy page, non-dismissable disclaimer
+- [x] **Phase 3: Cheat Sheet Rendering, Print, Mobile, Onboarding, Privacy** - render Blocks A through H, two-column DE/native, print stylesheet, phone layout, onboarding, privacy page, non-dismissable disclaimer
 - [ ] **Phase 4: Multilingual Intake and Glosses (ES + PT)** - UI language switcher live, ES and PT prompt templates, ES and PT gloss columns
 - [ ] **Phase 5: First Real-User Pilot and Prompt Tuning** - first close contact uses the tool for a real call, debrief feeds back into phrasebook and prompts
 
@@ -87,8 +87,11 @@ Note: the Phase 0 Goal and Success Criteria above predate the discussion capture
   2. A non-dismissable "preparation aid, not legal advice" disclaimer is visible at the top of every rendered cheat sheet
   3. Hitting Ctrl+P or the in-app Print button produces a clean A4 layout, one to two pages, with form controls and buttons hidden, and no section is split across a page break
   4. The cheat sheet renders as a readable single-column layout on a real iPhone Safari window (tested on device, not just devtools emulation)
-  5. A first-time visitor without a key lands on an onboarding screen explaining the BYO-key model, with a link to obtain a free Gemini key, and can read a dedicated privacy page explaining the no-backend, no-logging, BYO-key posture in plain English
-**Plans**: TBD
+  5. A first-time visitor without a key lands on an onboarding screen explaining the BYO-key model, with a link to obtain an Anthropic API key, and can read a dedicated privacy page explaining the no-backend, no-logging, BYO-key posture in plain English
+**Plans**: 3 plans
+- [x] 03-01-PLAN.md - Blocks A-H rendering, TRUST-01 sticky disclaimer, computeTodayWindow(), ?raw=1 toggle, in-page Print button
+- [x] 03-02-PLAN.md - Print stylesheet (@page A4, hide controls, surface Block G) + mobile breakpoint (max-width 480px), human-verify checkpoint
+- [x] 03-03-PLAN.md - Onboarding screen, privacy page, TRUST-05 REQUIREMENTS.md housekeeping (Gemini -> Anthropic)
 **UI hint**: yes
 
 ### Phase 4: Multilingual Intake and Glosses (ES + PT)
@@ -120,7 +123,7 @@ Note: the Phase 0 Goal and Success Criteria above predate the discussion capture
 | 0. CORS and Provider Spike | 1/1 | Complete | 2026-05-14 |
 | 1. Skeleton, State, Key Handling, Static Constants | 2/2 | Complete | 2026-05-14 |
 | 2. LLM Round-Trip in English | 2/2 | Complete | 2026-05-15 |
-| 3. Cheat Sheet Rendering, Print, Mobile, Onboarding, Privacy | 0/0 | Not started | - |
+| 3. Cheat Sheet Rendering, Print, Mobile, Onboarding, Privacy | 3/3 | Complete | 2026-05-16 |
 | 4. Multilingual Intake and Glosses (ES + PT) | 0/0 | Not started | - |
 | 5. First Real-User Pilot and Prompt Tuning | 0/0 | Not started | - |
 
