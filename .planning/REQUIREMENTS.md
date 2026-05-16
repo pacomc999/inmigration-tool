@@ -46,7 +46,7 @@ Scoped requirements for the v1.0 milestone of the Migrationsamt Zürich Call Hel
 - [x] **TRUST-02**: First-time users see a consent checkbox before the first generation, explaining what data goes to the LLM provider and what stays local
 - [ ] **TRUST-03**: A privacy page explains the no-backend, no-logging, BYO-key model in plain English
 - [x] **TRUST-04**: The app never accesses the microphone, ever (lifetime guardrail, no code path requests `getUserMedia({ audio: true })`)
-- [ ] **TRUST-05**: A first-visit onboarding screen explains how to get a free Gemini API key, with link
+- [ ] **TRUST-05**: A first-visit onboarding screen explains how to get an Anthropic API key, with link
 
 ### Print & Mobile (PRINT)
 

@@ -51,3 +51,7 @@ Two URL flags short-circuit the real AI service call so you can iterate on the U
 - `?mock=broken` returns a deliberately malformed JSON string. The parser fails and the app routes to the parse-error screen. Useful for sanity-checking the error path UI.
 
 Open the file from disk with the flag appended, for example `file:///.../index.html?mock=1`. No real API call is made under either flag, and your saved API key is not touched.
+
+## First-visit onboarding
+
+On the first visit, the app shows a brief onboarding screen explaining the BYO-key model and pointing to the Anthropic Console (https://console.anthropic.com) to create an API key. A Privacy link in the page footer (and in the cheat-sheet controls bar) opens the privacy page on demand. After dismissing onboarding once, the app remembers it via a `migrationsamt.onboardingSeen` localStorage flag; clearing browser site data makes onboarding show again.
