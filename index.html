@@ -305,6 +305,35 @@
         color: #555;
       }
     }
+
+    /* ---------------------------------------------------------------------
+       MOBILE BREAKPOINT (Phase 3 Plan 03-02)
+       Goal: keep the cheat sheet readable on iPhone Safari (PRINT-02).
+       Soft-pass via Chrome devtools iPhone 15 Pro emulation in this phase;
+       hard-pass on a real device deferred to the Phase 5 pilot.
+       --------------------------------------------------------------------- */
+    @media (max-width: 480px) {
+      /* Collapse the DE / EN two-column grid to a single vertical column so
+         each pair stacks: German on top, native language below. */
+      .bilingual-row {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+      }
+      /* Set the body base size explicitly. Default browser root is already
+         around 16px, but pinning it here protects against future overrides
+         shrinking the readable text on small screens. */
+      body {
+        font-size: 16px;
+      }
+      /* Form inputs at 16px minimum: iOS Safari auto-zooms the page when a
+         user focuses an input whose font-size is below 16px. This rule
+         prevents that disruptive zoom on the intake screen. */
+      input,
+      select,
+      textarea {
+        font-size: 16px;
+      }
+    }
   </style>
 </head>
 <body>
