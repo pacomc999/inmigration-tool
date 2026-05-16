@@ -171,6 +171,40 @@
       color: #666;
       font-size: 0.85rem;
     }
+
+    /* Phase 3 Plan 03-01: cheat-sheet rendering styles (screen only).
+       Plan 03-02 layers @media print + @media (max-width: 480px) on top. */
+    .cheat-sheet-disclaimer {
+      position: sticky;
+      top: 0;
+      background: #fff4cc;
+      border: 1px solid #b08800;
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 1rem;
+      font-weight: bold;
+      z-index: 10;
+    }
+    .cheat-sheet-block {
+      border-left: 4px solid #444;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .cheat-sheet-block h3 {
+      margin-top: 0;
+      font-size: 1.05rem;
+    }
+    .bilingual-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .bilingual-row .de { font-weight: 600; }
+    .bilingual-row .en { color: #555; font-size: 0.95rem; }
+    .cheat-sheet-print-only { display: none; }
+    .cheat-sheet-controls { margin: 1rem 0; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .print-hint { font-size: 0.9rem; color: #555; }
+    .note-line { font-family: monospace; }
   </style>
 </head>
 <body>
@@ -301,31 +335,72 @@
       <p class="helper">This usually takes 10 to 20 seconds. Please keep this tab open.</p>
     </section>
 
-    <!-- Phase 2 Plan 02: result screen. Throwaway raw-preview layout.
-         Phase 3 deletes most of this and replaces with the printable cheat sheet. -->
+    <!-- Phase 3 Plan 03-01: result screen now hosts the full printable
+         eight-block cheat sheet. The pinned disclaimer sits above the
+         article. The four Phase 2 placeholder divs (#resultBlockB / C / E / F)
+         are kept inside their corresponding block sections so the existing
+         renderBlockB / C / E / F helpers continue to write into them. -->
     <section id="result" hidden>
-      <h2>Your cheat sheet (Phase 2 raw preview)</h2>
-      <p class="helper">This is the raw structured output. In a later step we will format it as a printable cheat sheet. For now, look through it to check the German makes sense and the schema is right.</p>
 
-      <h3>Block B - Opening script</h3>
-      <div id="resultBlockB"></div>
+      <!-- TRUST-01: non-dismissable disclaimer pinned at the top.
+           No close button. Plan 03-02 reuses the same node for print. -->
+      <div class="cheat-sheet-disclaimer">Preparation aid only. Not legal advice. Do not read this aloud word for word.</div>
 
-      <h3>Block C - Likely officer questions</h3>
-      <div id="resultBlockC"></div>
+      <!-- Phase 3 Plan 03-01: full Block A-H cheat-sheet structure. Plan 03-02 adds @media print + @media (max-width: 480px). -->
+      <article id="cheatSheet" class="cheat-sheet-print-root">
 
-      <h3>Block E - Vocabulary</h3>
-      <div id="resultBlockE"></div>
+        <!-- Block A: hardcoded call header (renderBlockA populates). -->
+        <section id="blockA" class="cheat-sheet-block"></section>
 
-      <h3>Block F - Prep checklist</h3>
-      <div id="resultBlockF"></div>
+        <!-- Block B: opening script (Phase 2 renderBlockB writes into #resultBlockB). -->
+        <section id="blockB" class="cheat-sheet-block">
+          <div id="resultBlockB"></div>
+        </section>
 
-      <details>
-        <summary>Raw JSON for debugging</summary>
+        <!-- Block C: likely officer questions (Phase 2 renderBlockC). -->
+        <section id="blockC" class="cheat-sheet-block">
+          <div id="resultBlockC"></div>
+        </section>
+
+        <!-- Block D: hardcoded panic phrases (renderBlockD populates). -->
+        <section id="blockD" class="cheat-sheet-block"></section>
+
+        <!-- Block E: vocabulary glossary (Phase 2 renderBlockE). -->
+        <section id="blockE" class="cheat-sheet-block">
+          <div id="resultBlockE"></div>
+        </section>
+
+        <!-- Block F: prep checklist (Phase 2 renderBlockF). -->
+        <section id="blockF" class="cheat-sheet-block">
+          <div id="resultBlockF"></div>
+        </section>
+
+        <!-- Block G: note-taking lines. Hidden on screen via
+             .cheat-sheet-print-only. Plan 03-02 reveals it in print. -->
+        <section id="blockG" class="cheat-sheet-block cheat-sheet-print-only"></section>
+
+        <!-- Block H: footer + escalation links (renderBlockH populates). -->
+        <section id="blockH" class="cheat-sheet-block"></section>
+
+      </article>
+
+      <!-- In-page Print button plus Ctrl+P hint (Francisco's locked decision).
+           The two Phase 2 navigation buttons keep their original ids so the
+           Plan 02 click handlers continue to resolve unchanged. -->
+      <div class="cheat-sheet-controls">
+        <button type="button" id="printCheatSheetBtn">Print this sheet</button>
+        <span class="print-hint">Tip: Ctrl+P also works on most browsers.</span>
+        <button type="button" id="newCheatSheetButton">New cheat sheet</button>
+        <button type="button" id="backToIntakeFromResultButton">Back to intake</button>
+      </div>
+
+      <!-- Developer-only raw JSON view. Hidden by default; only the
+           ?raw=1 URL flag unhides it (single conditional in render()). -->
+      <details id="rawJsonDebug" class="cheat-sheet-raw" hidden>
+        <summary>Raw JSON (developer view, ?raw=1)</summary>
         <pre id="resultRawJson"></pre>
       </details>
 
-      <button id="newCheatSheetButton" type="button">New cheat sheet</button>
-      <button id="backToIntakeFromResultButton" type="button">Back to intake</button>
     </section>
 
     <!-- Phase 2 Plan 02: error panel. One section, copy switched by appState.errorClass. -->
