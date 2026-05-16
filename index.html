@@ -205,6 +205,10 @@
     .cheat-sheet-controls { margin: 1rem 0; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
     .print-hint { font-size: 0.9rem; color: #555; }
     .note-line { font-family: monospace; }
+    /* Phase 3 Plan 03-03: Privacy link inside the result-screen controls bar.
+       Pushed to the right so it sits visually separate from the action buttons.
+       The bar itself is hidden in print via Plan 03-02's .cheat-sheet-controls rule. */
+    .result-privacy-link { margin-left: auto; font-size: 0.95rem; }
 
     /* ---------------------------------------------------------------------
        PRINT STYLESHEET (Phase 3 Plan 03-02)
@@ -584,6 +588,7 @@
         <span class="print-hint">Tip: Ctrl+P also works on most browsers.</span>
         <button type="button" id="newCheatSheetButton">New cheat sheet</button>
         <button type="button" id="backToIntakeFromResultButton">Back to intake</button>
+        <a href="#" id="resultPrivacyLink" class="result-privacy-link">Privacy</a>
       </div>
 
       <!-- Developer-only raw JSON view. Hidden by default; only the
@@ -615,6 +620,7 @@
 
   <footer>
     <p>This is a preparation aid, not legal advice. The tool does not contact authorities. You make the call.</p>
+    <p><a href="#" id="footerPrivacyLink">Privacy</a></p>
   </footer>
 
   <script>
@@ -2075,6 +2081,32 @@ Reply in JSON only. The calling application enforces the schema via the API's st
     }
 
     /* Wire up DOM events and bootstrap state on initial load. */
+    /* Phase 3 Plan 03-03: onboarding + privacy navigation handlers.
+       Three small functions plug into the locked setState pattern. None of
+       them touches appState.consentGiven (that is a separate Phase 2 flag). */
+
+    /* onOnboardingContinue: writes the onboarding-seen flag and advances to
+       the appropriate next screen based on whether a key is already saved. */
+    function onOnboardingContinue() {
+      saveOnboardingSeen();
+      setState({ screen: appState.apiKey ? 'intake' : 'key-entry' });
+    }
+
+    /* onPrivacyClick: remembers where the user came from so the Back button
+       on the privacy page can return there, then navigates to 'privacy'. */
+    function onPrivacyClick() {
+      appState.returnTo = appState.screen;
+      setState({ screen: 'privacy' });
+    }
+
+    /* onPrivacyBack: returns to the screen the user came from, defaulting
+       to 'intake' if returnTo was never set. Clears returnTo on the way. */
+    function onPrivacyBack() {
+      const target = appState.returnTo || 'intake';
+      appState.returnTo = null;
+      setState({ screen: target });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('saveKeyBtn').addEventListener('click', onSaveKey);
       // Phase 1's #ready section still exists in the DOM (unreachable in
@@ -2146,6 +2178,31 @@ Reply in JSON only. The calling application enforces the schema via the API's st
         // appState.lastIntake and appState.consentGiven are preserved.
         setState({ screen: 'key-entry' });
       });
+
+      // Phase 3 Plan 03-03: wire the onboarding Continue button, the
+      // privacy Back button, and the two Privacy links (page footer +
+      // result-screen controls bar).
+      const continueBtn = document.getElementById('onboardingContinueButton');
+      if (continueBtn) continueBtn.addEventListener('click', onOnboardingContinue);
+
+      const privacyBackBtn = document.getElementById('privacyBackButton');
+      if (privacyBackBtn) privacyBackBtn.addEventListener('click', onPrivacyBack);
+
+      const footerLink = document.getElementById('footerPrivacyLink');
+      if (footerLink) {
+        footerLink.addEventListener('click', function (event) {
+          event.preventDefault();
+          onPrivacyClick();
+        });
+      }
+
+      const resultLink = document.getElementById('resultPrivacyLink');
+      if (resultLink) {
+        resultLink.addEventListener('click', function (event) {
+          event.preventDefault();
+          onPrivacyClick();
+        });
+      }
 
       // Mirror the consent flag from localStorage on load.
       appState.consentGiven = loadConsent();
