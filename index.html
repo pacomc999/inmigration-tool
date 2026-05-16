@@ -1118,6 +1118,142 @@ Reply in JSON only. The calling application enforces the schema via the API's st
         2026-12-24 (Thursday)                -> normal hours + the A2 footnote.
     */
 
+    /* renderBlockA: hardcoded call header. textContent only. */
+    function renderBlockA(cs) {
+      const root = document.getElementById('blockA');
+      if (!root) return;
+      while (root.firstChild) root.removeChild(root.firstChild);
+      const addP = function (text) {
+        const p = document.createElement('p');
+        p.textContent = text;
+        root.appendChild(p);
+      };
+      const h3 = document.createElement('h3');
+      h3.textContent = 'Block A - Who you are calling';
+      root.appendChild(h3);
+      addP(MIGRATIONSAMT.nameDe);
+      addP(MIGRATIONSAMT.parentDept);
+      addP('Phone: ' + MIGRATIONSAMT.phone.international);
+      addP(MIGRATIONSAMT.address.line1 + ', ' + MIGRATIONSAMT.address.postalCode + ' ' + MIGRATIONSAMT.address.city);
+      // Today's hours window: live clock + MIGRATIONSAMT data.
+      const todayWindow = computeTodayWindow();
+      const hoursLine = document.createElement('p');
+      hoursLine.textContent = 'Today, ' + todayWindow.todayLabel + ': ' +
+                              todayWindow.windowText +
+                              (todayWindow.note ? ' ' + todayWindow.note : '');
+      root.appendChild(hoursLine);
+
+      // User goal section. Only rendered when the LLM supplied a goal.
+      if (cs && cs.blockB && cs.blockB.userGoalSentence) {
+        const goalLabel = document.createElement('p');
+        const strong = document.createElement('strong');
+        strong.textContent = 'Your goal for this call:';
+        goalLabel.appendChild(strong);
+        root.appendChild(goalLabel);
+
+        const goalDe = document.createElement('p');
+        goalDe.className = 'de';
+        goalDe.textContent = cs.blockB.userGoalSentence;
+        root.appendChild(goalDe);
+
+        const goalEn = document.createElement('p');
+        goalEn.className = 'en';
+        goalEn.textContent = cs.blockB.userGoalGloss || '';
+        root.appendChild(goalEn);
+      }
+    }
+
+    /* renderBlockD: writes the seven hardcoded panic phrases into #blockD.
+       Each phrase becomes a .bilingual-row with .de and .en children. */
+    function renderBlockD() {
+      const root = document.getElementById('blockD');
+      if (!root) return;
+      while (root.firstChild) root.removeChild(root.firstChild);
+
+      const h3 = document.createElement('h3');
+      h3.textContent = 'Block D - Panic phrases (always available)';
+      root.appendChild(h3);
+
+      BLOCK_D.forEach(function (entry) {
+        const row = document.createElement('div');
+        row.className = 'bilingual-row';
+
+        const de = document.createElement('div');
+        de.className = 'de';
+        de.textContent = entry.de;
+        row.appendChild(de);
+
+        const en = document.createElement('div');
+        en.className = 'en';
+        en.textContent = entry.en;
+        row.appendChild(en);
+
+        root.appendChild(row);
+      });
+    }
+
+    /* renderBlockG: writes four labelled note-taking lines into #blockG.
+       The block itself is hidden on screen via .cheat-sheet-print-only;
+       Plan 03-02 reveals it inside @media print. We still build the DOM
+       every render so print preview always reflects the current state. */
+    function renderBlockG() {
+      const root = document.getElementById('blockG');
+      if (!root) return;
+      while (root.firstChild) root.removeChild(root.firstChild);
+
+      const h3 = document.createElement('h3');
+      h3.textContent = 'Block G - Take notes during the call';
+      root.appendChild(h3);
+
+      const labels = ['Officer name:', 'Next step:', 'Date:', 'Reference number:'];
+      labels.forEach(function (label) {
+        const line = document.createElement('p');
+        line.className = 'note-line';
+        line.textContent = label + ' ____________________________________';
+        root.appendChild(line);
+      });
+    }
+
+    /* renderBlockH: writes the footer notice and the three escalation
+       links from BLOCK_H_FOOTER into #blockH. Link text via textContent,
+       href via setAttribute, target/rel set explicitly. Zero innerHTML. */
+    function renderBlockH() {
+      const root = document.getElementById('blockH');
+      if (!root) return;
+      while (root.firstChild) root.removeChild(root.firstChild);
+
+      const h3 = document.createElement('h3');
+      h3.textContent = 'Block H - Footer and escalation';
+      root.appendChild(h3);
+
+      // Disclaimer notice. BLOCK_H_FOOTER.disclaimer is the English shortform.
+      const notice = document.createElement('p');
+      notice.textContent = BLOCK_H_FOOTER.disclaimer;
+      root.appendChild(notice);
+
+      // Lead-in line for the escalation list.
+      const lead = document.createElement('p');
+      lead.textContent = 'If you need help beyond a phone call, contact:';
+      root.appendChild(lead);
+
+      // Escalation links: one <li> per entry, each with one <a>.
+      const list = document.createElement('ul');
+      const escalations = Array.isArray(BLOCK_H_FOOTER.escalations)
+        ? BLOCK_H_FOOTER.escalations
+        : [];
+      escalations.forEach(function (entry) {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.textContent = entry.name;
+        a.setAttribute('href', entry.url);
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+        li.appendChild(a);
+        list.appendChild(li);
+      });
+      root.appendChild(list);
+    }
+
     /* intakeFromState: repopulates the intake form inputs from
        appState.lastIntake when non-null. Phase 1 inlined this logic in
        render(); Plan 02 extracts it so the post-error recovery path is
@@ -1199,16 +1335,30 @@ Reply in JSON only. The calling application enforces the schema via the API's st
           const resultEl = document.getElementById('result');
           if (resultEl) resultEl.hidden = false;
 
-          // Populate the four blocks from appState.cheatSheet.
+          // Phase 3 Plan 03-01: render all eight blocks in the locked order
+          // A B C D E F G H. Phase 2 helpers (B/C/E/F) are reused unchanged.
           const cs = appState.cheatSheet || {};
+          renderBlockA(cs);
           renderBlockB(cs.blockB);
           renderBlockC(cs.blockC);
+          renderBlockD();
           renderBlockE(cs.blockE);
           renderBlockF(cs.blockF);
+          renderBlockG();
+          renderBlockH();
 
-          // Raw JSON dump via textContent: never innerHTML.
-          const pre = document.getElementById('resultRawJson');
-          if (pre) pre.textContent = JSON.stringify(cs, null, 2);
+          // Raw JSON developer view: hidden unless ?raw=1 is in the URL.
+          // This is the only code path that unhides #rawJsonDebug.
+          const rawDetails = document.getElementById('rawJsonDebug');
+          const rawPre = document.getElementById('resultRawJson');
+          const rawFlag = new URLSearchParams(window.location.search).get('raw');
+          if (rawFlag === '1') {
+            rawDetails.hidden = false;
+            rawPre.textContent = JSON.stringify(cs, null, 2);
+          } else {
+            rawDetails.hidden = true;
+            rawPre.textContent = '';
+          }
           return;
         }
         case 'error': {
