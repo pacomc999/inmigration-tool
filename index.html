@@ -1034,6 +1034,90 @@ Reply in JSON only. The calling application enforces the schema via the API's st
       root.appendChild(ul);
     }
 
+    /* ----------------------------------------------------------------------
+       CHEAT SHEET RENDER HELPERS (Phase 3 Plan 03-01)
+       Block A / D / G / H render helpers and the computeTodayWindow()
+       pure helper that powers Block A's "today's hours" line. Block B / C
+       / E / F continue to be rendered by the Phase 2 helpers above.
+       ---------------------------------------------------------------------- */
+
+    /* computeTodayWindow: PURE helper. Reads MIGRATIONSAMT.phoneHours and
+       MIGRATIONSAMT.closures2026, uses new Date() (via the parameter
+       default) for the client clock. No DOM access, no setState, no fetch.
+       Handles four edge cases:
+         1. Weekend (Saturday or Sunday) -> closed.
+         2. closures2026 entry with type 'closed' -> closed with name.
+         3. closures2026 entry with type 'reduced' -> morning + early close.
+         4. 2026-12-24 ASSUMPTION A2 footnote -> normal hours + caveat.
+       Output shape: { open, todayLabel, windowText, note }. */
+    function computeTodayWindow(now) {
+      // Default to the live clock; parameter is here so future tests can
+      // pass an explicit date without monkey-patching the global Date.
+      if (!now) now = new Date();
+
+      // Build the YYYY-MM-DD date string with zero-padding.
+      const year = now.getFullYear();
+      const monthNum = now.getMonth() + 1;
+      const dayNum = now.getDate();
+      const pad = function (n) { return n < 10 ? '0' + n : String(n); };
+      const isoDate = year + '-' + pad(monthNum) + '-' + pad(dayNum);
+
+      // German weekday labels, indexed by Date.getDay() (0 = Sunday).
+      const weekdaysDe = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+      const dayOfWeek = now.getDay();
+      const todayLabel = weekdaysDe[dayOfWeek] + ' ' + isoDate;
+
+      // Branch 1: weekend. The Migrationsamt phone line is closed on Sat/Sun.
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        return { open: false, todayLabel: todayLabel, windowText: 'Closed (weekend)', note: '' };
+      }
+
+      // Branch 2 / 3: published closure or reduced-hours day.
+      let closure = null;
+      for (let i = 0; i < MIGRATIONSAMT.closures2026.length; i++) {
+        if (MIGRATIONSAMT.closures2026[i].date === isoDate) {
+          closure = MIGRATIONSAMT.closures2026[i];
+          break;
+        }
+      }
+      if (closure) {
+        if (closure.type === 'closed') {
+          return { open: false, todayLabel: todayLabel, windowText: 'Closed (' + closure.name + ')', note: '' };
+        }
+        if (closure.type === 'reduced') {
+          const morning = MIGRATIONSAMT.phoneHours.mondayToFriday[0];
+          return {
+            open: true,
+            todayLabel: todayLabel,
+            windowText: morning.from + '-' + closure.closesAt + ' (reduced hours, ' + closure.name + ')',
+            note: '',
+          };
+        }
+      }
+
+      // Branch 3 (normal weekday): join all phoneHours windows with ", ".
+      const windows = MIGRATIONSAMT.phoneHours.mondayToFriday.map(function (w) {
+        return w.from + '-' + w.to;
+      });
+      const windowText = windows.join(', ');
+
+      // ASSUMPTION A2 footnote: 24 Dec 2026 schedule is unconfirmed.
+      let note = '';
+      if (isoDate === '2026-12-24') {
+        note = '(24 Dec schedule unconfirmed; verify on zh.ch before calling)';
+      }
+
+      return { open: true, todayLabel: todayLabel, windowText: windowText, note: note };
+    }
+    /*
+      computeTodayWindow expected outputs for reference dates:
+        2026-05-14 (Thursday, Auffahrt)      -> closed branch, name 'Auffahrt'.
+        2026-05-13 (Wednesday, Tag vor Auffahrt) -> reduced branch, '08:00-14:30 (reduced hours, Tag vor Auffahrt)'.
+        2026-05-16 (Saturday)                -> 'Closed (weekend)'.
+        2026-05-18 (Monday)                  -> '08:00-11:45, 13:00-16:30', empty note.
+        2026-12-24 (Thursday)                -> normal hours + the A2 footnote.
+    */
+
     /* intakeFromState: repopulates the intake form inputs from
        appState.lastIntake when non-null. Phase 1 inlined this logic in
        render(); Plan 02 extracts it so the post-error recovery path is
