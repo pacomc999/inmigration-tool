@@ -1875,6 +1875,14 @@ Reply in JSON only. The calling application enforces the schema via the API's st
         setState({ screen: 'intake' });
       });
 
+      // Print button: opens the browser native print dialog. The Ctrl+P
+      // shortcut also works; the .print-hint span next to this button
+      // tells the user that. Plan 03-02 hides this button inside @media print.
+      const printBtn = document.getElementById('printCheatSheetBtn');
+      if (printBtn) printBtn.addEventListener('click', function () {
+        window.print();
+      });
+
       const tryAgainBtn = document.getElementById('errorTryAgainButton');
       if (tryAgainBtn) tryAgainBtn.addEventListener('click', function () {
         // runGeneration is defined in the Task 4 block below. Resolved at
