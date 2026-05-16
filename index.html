@@ -205,6 +205,106 @@
     .cheat-sheet-controls { margin: 1rem 0; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
     .print-hint { font-size: 0.9rem; color: #555; }
     .note-line { font-family: monospace; }
+
+    /* ---------------------------------------------------------------------
+       PRINT STYLESHEET (Phase 3 Plan 03-02)
+       Goal: produce a clean A4 print of the cheat sheet only; hide every
+       non-cheat-sheet UI (PRINT-03); avoid mid-block page breaks (PRINT-01);
+       reveal Block G note-taking lines only in print.
+       --------------------------------------------------------------------- */
+
+    /* @page sets the physical paper size and outer margins for the print run.
+       1.5cm gives roughly the right printable width for A4 and leaves room
+       for printer-driver no-print zones on cheap home printers. */
+    @page {
+      size: A4;
+      margin: 1.5cm;
+    }
+
+    @media print {
+      /* Hide every non-cheat-sheet UI piece. Using !important so the rule
+         beats any inline `hidden` toggles or screen styles that might apply.
+         #onboarding and #privacy are listed ahead of Plan 03-03 so the rule
+         is forward-compatible: until those ids exist the selectors are a
+         harmless no-op. */
+      .no-print,
+      header,
+      footer,
+      .intake-key-header,
+      #key-entry,
+      #intake,
+      #generating,
+      #errorPanel,
+      #onboarding,
+      #privacy,
+      #rawJsonDebug,
+      .cheat-sheet-controls {
+        display: none !important;
+      }
+
+      /* Body normalisation for print: remove screen margins, force black
+         text for crisp printing, set 11pt as the readable A4 body size. */
+      body {
+        margin: 0;
+        color: #000;
+        font-size: 11pt;
+      }
+
+      /* The cheat sheet wrapper should fill the printable page area; the
+         screen-only max-width and centering get cleared here. */
+      #cheatSheet {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      /* Block G is hidden on screen via .cheat-sheet-print-only. In print we
+         flip it back to visible so the user has note-taking lines on paper. */
+      .cheat-sheet-print-only {
+        display: block !important;
+      }
+
+      /* Page-break behaviour: keep each cheat-sheet block on one page.
+         We set both the modern `break-inside` and the legacy
+         `page-break-inside` property because some print engines still
+         honour only the legacy form. */
+      .cheat-sheet-block {
+        page-break-inside: avoid;
+        break-inside: avoid;
+        margin-bottom: 0.75rem;
+      }
+
+      /* Disclaimer override for print: drop the sticky behaviour from the
+         screen rule and render it as a normal block at the top of page 1
+         with a hard black border so it still reads as a warning on paper. */
+      .cheat-sheet-disclaimer {
+        position: static;
+        background: #fff;
+        border: 2px solid #000;
+        padding: 0.5rem;
+        margin-bottom: 0.75rem;
+        font-weight: bold;
+      }
+
+      /* Force coloured borders and backgrounds to print on Chrome / Edge /
+         Safari. The user must also keep Chrome's `Background graphics`
+         checkbox ticked in the print dialog; this rule is the CSS half of
+         that contract. */
+      .cheat-sheet-block,
+      .cheat-sheet-disclaimer {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      /* Block H escalation links: print the href next to the link text so
+         the URLs are usable from paper. Only fires for anchors that have a
+         non-empty href attribute. */
+      #blockH a[href]::after {
+        content: " (" attr(href) ")";
+        font-size: 0.85em;
+        color: #555;
+      }
+    }
   </style>
 </head>
 <body>
