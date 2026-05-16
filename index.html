@@ -951,7 +951,7 @@ Reply in JSON only. The calling application enforces the schema via the API's st
 
     /* State: appState is the single source of truth for what the UI shows. */
     const appState = {
-      // 'key-entry' | 'intake' | 'generating' | 'result' | 'error'
+      // 'key-entry' | 'intake' | 'generating' | 'result' | 'error' | 'onboarding' | 'privacy'
       screen: 'key-entry',
       apiKey: null,         // raw key, in memory only, never written via innerHTML
       lastIntake: null,     // snapshot of the most recent intake form (Plan 02 consumes)
@@ -959,6 +959,7 @@ Reply in JSON only. The calling application enforces the schema via the API's st
       errorClass: null,     // 'auth' | 'rate-limit' | 'server' | 'bad-request' | 'parse' | 'network' (Plan 02)
       errorDetail: null,    // { httpStatus?, bodyText?, message? } (Plan 02)
       consentGiven: false,  // mirrored from localStorage on load (TRUST-02)
+      returnTo: null,       // 'privacy' navigation: holds the screen the user came from; consumed by Privacy Back. Default null.
     };
 
     /* localStorage helpers, all wrapped in try/catch so private-browsing or
@@ -984,6 +985,42 @@ Reply in JSON only. The calling application enforces the schema via the API's st
         localStorage.setItem(CONSENT_STORAGE_KEY, 'true');
       } catch (err) {
         // Best effort: if storage is blocked, consent simply will not persist.
+      }
+    }
+
+    /* ----------------------------------------------------------------------
+       Onboarding-seen flag (TRUST-05) and Anthropic Console URL.
+       Same defensive pattern as the consent flag: read and write are wrapped
+       in try/catch so localStorage exceptions never crash the boot path.
+       ---------------------------------------------------------------------- */
+    const ONBOARDING_STORAGE_KEY = 'migrationsamt.onboardingSeen';
+
+    /* Base Anthropic Console URL. Linked from the onboarding screen and the
+       privacy page. Base URL (not /settings/keys) so unsigned-up users see
+       the sign-up flow first (per 03-RESEARCH.md Section 6). */
+    const ANTHROPIC_CONSOLE_URL = 'https://console.anthropic.com';
+
+    /* loadOnboardingSeen returns true when the user has dismissed the
+       first-visit onboarding screen at least once. Any storage error is
+       treated as "not seen" so the user sees the onboarding again, which
+       is the safer failure mode for a first-time experience. */
+    function loadOnboardingSeen() {
+      try {
+        return localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'true';
+      } catch (_e) {
+        // localStorage blocked: pretend the flag is not there so the user sees onboarding.
+        return false;
+      }
+    }
+
+    /* saveOnboardingSeen records that the user has dismissed onboarding.
+       Best effort only: if storage is blocked the user simply sees the
+       onboarding screen again on next visit. */
+    function saveOnboardingSeen() {
+      try {
+        localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+      } catch (_e) {
+        // Best effort; if storage is blocked the user sees onboarding again next visit.
       }
     }
 
@@ -2036,8 +2073,16 @@ Reply in JSON only. The calling application enforces the schema via the API's st
       const stored = loadStoredKey();
       if (stored) {
         appState.apiKey = stored;
-        // Phase 2: a saved key lands directly on intake, not 'ready'.
+      }
+
+      // Onboarding takes priority on first visit; subsequent visits use the Phase 1 routing.
+      const onboardingSeen = loadOnboardingSeen();
+      if (!onboardingSeen) {
+        appState.screen = 'onboarding';
+      } else if (appState.apiKey) {
         appState.screen = 'intake';
+      } else {
+        appState.screen = 'key-entry';
       }
       render();
     });
