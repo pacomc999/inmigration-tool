@@ -464,6 +464,69 @@
       <p class="helper">This usually takes 10 to 20 seconds. Please keep this tab open.</p>
     </section>
 
+    <!-- Phase 3 Plan 03-03: first-visit onboarding screen (TRUST-05).
+         Static hand-written HTML. No template substitution from untrusted
+         data, so plain anchors and text are safe. The "Get an Anthropic
+         API key" link href is also synced from ANTHROPIC_CONSOLE_URL on
+         every render so the constant remains the single source of truth. -->
+    <section id="onboarding" hidden>
+      <h2>Welcome</h2>
+      <p>This is a preparation aid for calling the Migrationsamt of canton Zurich. You describe your situation in your own language, and the tool builds a German cheat sheet you keep in front of you while you make the call yourself.</p>
+
+      <h3>How it works</h3>
+      <p>You bring your own Anthropic API key. The key is saved only in your browser (in localStorage), never sent to any server we run. There is no backend, no account, no log file. When you press Generate, your intake answers are sent in a single call to Anthropic, and Anthropic's response (the cheat sheet) comes straight back to your browser.</p>
+
+      <h3>You will need an Anthropic API key</h3>
+      <p>If you do not have one yet, sign up at the Anthropic Console, then go to Settings, API Keys, Create Key. Copy the key (it starts with sk-ant-...) and paste it into the next screen.</p>
+      <p><a id="onboardingAnthropicLink" href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer">Get an Anthropic API key</a></p>
+
+      <h3>What this tool will not do</h3>
+      <ul>
+        <li>It is not legal advice. It does not tell you what permit you should apply for, or what to say to influence an outcome.</li>
+        <li>It does not contact the Migrationsamt for you. You make the call yourself.</li>
+        <li>It never accesses your microphone. There is no recording of any kind, ever.</li>
+      </ul>
+
+      <p>Read more about how your data is handled on the Privacy page (link in the page footer).</p>
+
+      <button type="button" id="onboardingContinueButton">Got it, continue</button>
+    </section>
+
+    <!-- Phase 3 Plan 03-03: privacy page (TRUST-03). Plain-English contract
+         covering the no-backend, no-logging, BYO-key, no-microphone-ever
+         model. Reached via the Privacy link in the page footer on every
+         non-result screen, or via the link in .cheat-sheet-controls on the
+         result screen (the page footer is hidden by Plan 03-02 in print). -->
+    <section id="privacy" hidden>
+      <h2>Privacy</h2>
+      <p>This tool is designed so that as little of your information as possible leaves your browser.</p>
+
+      <h3>What stays in your browser, only</h3>
+      <ul>
+        <li>Your Anthropic API key. Saved in localStorage. You can clear it with the "Clear key" button on any screen. Clearing your browser site data also removes it.</li>
+        <li>The intake answers you typed (permit type, reason for calling, reference numbers, situation description). These exist only in memory after you submit, and are not persisted.</li>
+        <li>The generated cheat sheet. Shown on screen and available to print. Not persisted between sessions. Closing the tab clears it.</li>
+        <li>The onboarding-seen flag and the consent flag. Tiny boolean flags so you do not see the same screens twice. No personal data.</li>
+      </ul>
+
+      <h3>What is sent over the network</h3>
+      <p>When you press Generate cheat sheet, your intake answers plus the system prompt are sent in one HTTPS request to Anthropic's API (https://api.anthropic.com/v1/messages). The response (the cheat sheet) comes straight back to your browser. Anthropic's own data-handling policies apply to that request: see <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener noreferrer">https://www.anthropic.com/legal/privacy</a></p>
+      <p>That is the only outbound request this tool ever makes.</p>
+
+      <h3>What this tool never does</h3>
+      <ul>
+        <li>No backend of our own. No server stores your key or your intake.</li>
+        <li>No analytics. No tracking pixels. No third-party scripts. The Content Security Policy of the page blocks third-party scripts by default.</li>
+        <li>No microphone access, ever. There is no code path in this tool that requests microphone permission. This is a permanent design constraint tied to Article 179bis of the Swiss Criminal Code (recording conversations without consent is illegal). Even future versions will not record your call.</li>
+        <li>No cookies are set by this tool.</li>
+      </ul>
+
+      <h3>Your right to walk away</h3>
+      <p>You can clear your saved key in one click (Clear key on any screen). You can close the tab and nothing about your session persists except the saved key (if you saved one) and the two boolean flags. Clearing your browser site data removes everything.</p>
+
+      <button type="button" id="privacyBackButton">Back</button>
+    </section>
+
     <!-- Phase 3 Plan 03-01: result screen now hosts the full printable
          eight-block cheat sheet. The pinned disclaimer sits above the
          article. The four Phase 2 placeholder divs (#resultBlockB / C / E / F)
@@ -1070,7 +1133,7 @@ Reply in JSON only. The calling application enforces the schema via the API's st
        Hides every known top-level <section> so we never leave stale UI
        behind when swapping screens. */
     function hideAllSections() {
-      const sections = ['keyEntry', 'ready', 'intake', 'generating', 'result', 'errorPanel'];
+      const sections = ['keyEntry', 'ready', 'intake', 'generating', 'result', 'errorPanel', 'onboarding', 'privacy'];
       sections.forEach(function (id) {
         const el = document.getElementById(id);
         if (el) el.hidden = true;
@@ -1552,6 +1615,23 @@ Reply in JSON only. The calling application enforces the schema via the API's st
           if (detailPre) {
             detailPre.textContent = JSON.stringify(appState.errorDetail || {}, null, 2);
           }
+          return;
+        }
+        case 'onboarding': {
+          stopLoadingMessages();
+          hideAllSections();
+          const el = document.getElementById('onboarding');
+          if (el) el.hidden = false;
+          // Keep the link href in sync with ANTHROPIC_CONSOLE_URL in case it ever changes.
+          const link = document.getElementById('onboardingAnthropicLink');
+          if (link) link.href = ANTHROPIC_CONSOLE_URL;
+          return;
+        }
+        case 'privacy': {
+          stopLoadingMessages();
+          hideAllSections();
+          const el = document.getElementById('privacy');
+          if (el) el.hidden = false;
           return;
         }
         default: {
